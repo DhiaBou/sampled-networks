@@ -4,6 +4,8 @@ from dataset import *
 from sampled_net import *
 from logic import *
 from matplotlib.ticker import LogLocator
+import csv
+import json
 
 
 def visualize_data(Y_1, Y_2):
@@ -28,6 +30,7 @@ def visualize_data(Y_1, Y_2):
 
     axs[-1].set_xlabel("Sample")
     plt.show()
+
 
 def plot_vector_differences(weights1, weights2):
     angles = np.degrees(
@@ -86,22 +89,66 @@ def plot_vector_differences(weights1, weights2):
 
     plt.show()
 
-def plot_loss_f_alpha_radius_mse(mses):      
+
+def write_to_file(output_file, data):
+    with open(output_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([str(data)])
+
+
+def write_to_file(output_file, data):
+    with open(output_file, "w") as f:
+        f.write(json.dumps(data))
+
+
+def read_from_file(input_file):
+    with open(input_file, "r") as f:
+        return json.loads(f.read())
+
+
+def plot_loss_f_alpha_radius_mse(mses):
     fig, ax = plt.subplots()
     for radius, inner_dict in mses.items():
         x = list(inner_dict.keys())
         y = list(inner_dict.values())
-        
-        radius_str = "{:0.2f}".format(radius)   
-        ax.plot(x, y, marker='o', label=f'Radius: {radius_str}')
 
-    ax.set_xlabel('Alpha (log scale)')
-    ax.set_ylabel('MSE')
-    ax.set_xscale('log')
-    ax.xaxis.set_major_locator(LogLocator(base=10)) 
+        radius_str = "{:0.2f}".format(radius)
+        ax.plot(x, y, marker="o", label=f"Radius: {radius_str}")
+
+    ax.set_xlabel("Alpha (log scale)")
+    ax.set_ylabel("MSE")
+    ax.set_xscale("log")
+    ax.xaxis.set_major_locator(LogLocator(base=10))
     ax.legend()
 
     plt.show()
 
 
+def plot_loss_f_num_samples(losses):
+    x = [int(k) for k in losses.keys()]
+    x_ticks = x
+    x = np.log10(x)
 
+    y1 = [v["mse"] for v in losses.values()]
+    y2 = [v["r2"] for v in losses.values()]
+
+    fig, ax1 = plt.subplots()
+
+    color = "tab:red"
+    ax1.set_xlabel("Samples")
+    ax1.set_ylabel("MSE", color=color)
+    ax1.plot(x, y1, color=color)
+    ax1.tick_params(axis="y", labelcolor=color)
+
+    ax2 = ax1.twinx()
+
+    color = "tab:blue"
+    ax2.set_ylabel("R2", color=color)
+    ax2.plot(x, y2, color=color)
+    ax2.tick_params(axis="y", labelcolor=color)
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(x_ticks)
+
+    fig.tight_layout()
+    plt.show()

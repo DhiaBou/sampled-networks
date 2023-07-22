@@ -3,19 +3,20 @@ import sklearn
 from base_model import Model
 import tensorflow as tf
 
+
 class NeuralNet(Model):
     """Neural network model built using TensorFlow Keras and optimizer Adam."""
 
     def __init__(self):
         super().__init__()
 
-    def fit(self, X_train, y_train, layers, validation_split=0.0, epochs=100):
+    def fit(self, X_train, y_train, layers, validation_split=0.0, epochs=200):
         """Train the neural network on data X_train and targets y_train.
-        
+
         Args:
             X_train: Input data for training
             y_train: Target values for training
-            layers: List of layer sizes 
+            layers: List of layer sizes
             validation_split: Validation set fraction of training data
             epochs: Number of training epochs
         """
@@ -34,8 +35,14 @@ class NeuralNet(Model):
 
         model.compile(optimizer="adam", loss="mse")
 
-        model.fit(X_train, y_train, validation_split=validation_split, epochs=epochs, verbose=0)
+        model.fit(
+            X_train,
+            y_train,
+            validation_split=validation_split,
+            epochs=epochs,
+            verbose=0,
+        )
 
         # Extract weights and biases
-        self.weights = [layer.get_weights()[0] for layer in model.layers]  
+        self.weights = [layer.get_weights()[0] for layer in model.layers]
         self.biases = [-layer.get_weights()[1] for layer in model.layers]

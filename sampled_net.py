@@ -2,7 +2,6 @@ import numpy as np
 from base_model import Model
 from logic import *
 from neural_net import NeuralNet
-import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 

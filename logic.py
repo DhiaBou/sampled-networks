@@ -5,7 +5,6 @@ from sklearn.linear_model import Ridge
 
 from dataset import Dataset
 from neural_net import NeuralNet
-from sampled_net import SampledNet
 
 
 def loss_mse(y_true, y_pred):
@@ -28,6 +27,10 @@ def predict_output(X, weights, biases):
 
     return output
 
+def loss_model_on_test(model, X_test, y_test):
+    y_predict = model.predict(X_test)
+    loss = loss_mse(y_test, y_predict)
+    return loss
 
 def choose_x1_x2_lowest_activation(X, weight, bias, radius):
     if radius < 0:
@@ -134,7 +137,7 @@ def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, r
         loss_alpha = loss_mse(y_pred, y_test)
         print(f"{alpha} \t{loss_alpha:.3e}")
 
-        if loss_alpha < min_loss:
+        if loss_alpha <= min_loss:
             min_loss = loss_alpha
             alpha_r = alpha
             weights_r = w
@@ -142,14 +145,22 @@ def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, r
     return alpha_r, weights_r, biases_r
 
 
-def loss_f_alpha_radius_mse(data: Dataset, model_nn: NeuralNet):
+def loss_vs_aslpha_radius(data: Dataset, model_nn: NeuralNet):
+    from sampled_net import SampledNet
     max_radius = find_max_distance_all_pairs(data.X_train)
     radiuses = np.linspace(0, max_radius, 10)
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
     mses = {}
+
+    # calculate the loss of adam
+    adam_loss = loss_model_on_test(model_nn, data.X_test, data.y_test)
+    mses["adam"] = adam_loss
+
+    # calculate loss of SampledNet on radius and alpha combinations
+    mses["sampled_net"]={}
     for radius in radiuses:
         print(f"radius: {radius:.3f}")
-        mses[radius] = {}
+        mses["sampled_net"][radius] = {}
         weights_l1, biases_l1 = compute_weights_biases_layer1(
             data.X_train, data.y_train, model_nn.weights, model_nn.biases, radius
         )
@@ -162,11 +173,12 @@ def loss_f_alpha_radius_mse(data: Dataset, model_nn: NeuralNet):
             model_sampled.biases = [biases_l1, biases_l2]
             y_sampled = model_sampled.predict(data.X_test)
             mse = loss_mse(y_sampled, data.y_test)
-            mses[radius][alpha] = mse
+            mses["sampled_net"][radius][alpha] = mse
     return mses
 
 
-def mse_f_num_samples(datasets, models_nn):
+def loss_vs_num_samples(datasets, models_nn):
+    from sampled_net import SampledNet
     losses = {}
     for dataset, model in zip(datasets, models_nn):
         num_training = len(dataset.X_train)
@@ -194,7 +206,7 @@ def choose_best_radius_alpha(
         )
         y_pred = predict_output(X_test, w, b)
         mse = loss_mse(y_pred, y_test)
-        if mse < min_mse:
+        if mse <= min_mse:
             min_mse = mse
             alpha_r = alpha
             weights_r = w

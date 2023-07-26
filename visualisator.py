@@ -3,7 +3,7 @@ import numpy as np
 from dataset import *
 from sampled_net import *
 from logic import *
-from matplotlib.ticker import LogLocator
+from matplotlib.ticker import LogFormatter, LogLocator
 import csv
 import json
 
@@ -106,19 +106,23 @@ def read_from_file(input_file):
         return json.loads(f.read())
 
 
-def plot_loss_f_alpha_radius_mse(mses):
+def plot_loss_vs_alpha_radius(losses):
     fig, ax = plt.subplots()
-    for radius, inner_dict in mses.items():
+    for radius, inner_dict in losses["sampled_net"].items():
         x = list(inner_dict.keys())
+        x = [float(s) for s in x]
         y = list(inner_dict.values())
 
-        radius_str = "{:0.2f}".format(radius)
+        radius_str = "{:0.2f}".format(float(radius))
         ax.plot(x, y, marker="o", label=f"Radius: {radius_str}")
 
+    ax.axhline(y=losses["adam"], color='r', linestyle='--', label='loss adam') 
+    
     ax.set_xlabel("Alpha (log scale)")
     ax.set_ylabel("MSE")
     ax.set_xscale("log")
     ax.xaxis.set_major_locator(LogLocator(base=10))
+    ax.xaxis.set_major_formatter(LogFormatter())
     ax.legend()
 
     plt.show()

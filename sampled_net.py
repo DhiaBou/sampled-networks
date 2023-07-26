@@ -27,10 +27,10 @@ class SampledNet(Model):
         - X_train: Input training data
         - y_train: Output training data
         - model: Instance of NeuralNet class representing the trained neural network
-        - radius: Radius parameter for the distance to the least activator data point (Default: 0)
+        - radius: Radius parameter for the distance to the least activator data point (Default: -1, find best radius)
         - validation_split: Proportion of the dataset to include in the validation split (Default: 0.2)
         - layer2: Configuration of the second layer ("classic" or "ridge" or "lstsq") (Default: "classic")
-        - alpha: Regularization strength for Ridge regression (Default: 1)
+        - alpha: Regularization strength for Ridge regression (Default: -1, find best alpha)
         - num_intervals: Number of radius, equal distances between 0 and max_distance between X_train pairs (Default: 10)
 
         Returns:

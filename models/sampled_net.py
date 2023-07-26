@@ -1,7 +1,7 @@
 import numpy as np
-from base_model import Model
+from models.base_model import Model
 from logic import *
-from neural_net import NeuralNet
+from models.neural_net import NeuralNet
 from sklearn.model_selection import train_test_split
 
 

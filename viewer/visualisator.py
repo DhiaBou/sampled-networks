@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from dataset import *
-from sampled_net import *
+from models.sampled_net import *
 from logic import *
 from matplotlib.ticker import LogFormatter, LogLocator
 import csv

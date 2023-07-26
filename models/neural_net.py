@@ -1,6 +1,6 @@
 import numpy as np
 import sklearn
-from base_model import Model
+from models.base_model import Model
 import tensorflow as tf
 
 

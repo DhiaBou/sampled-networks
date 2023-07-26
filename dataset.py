@@ -25,11 +25,11 @@ class Dataset:
         self.y_train = []
         self.y_test = []
 
-    def load_data_from_csv(self, csv_file, y_cols, x_cols):
+    def load_data_from_csv(self, csv_file, x_cols, y_cols, skiprows = 0):
         """Load data from CSV file."""
-        data = np.loadtxt(csv_file, delimiter=",")
+        data = np.loadtxt(csv_file, delimiter=",", skiprows=skiprows)
         self.X = data[:, 0:x_cols]
-        self.y = data[:, x_cols : x_cols + y_cols - 1]
+        self.y = data[:, x_cols : x_cols + y_cols]
         return self
 
     def create_dataset_Barron(self, xd, num_samples):

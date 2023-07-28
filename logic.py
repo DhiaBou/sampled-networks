@@ -27,10 +27,12 @@ def predict_output(X, weights, biases):
 
     return output
 
+
 def loss_model_on_test(model, X_test, y_test):
     y_predict = model.predict(X_test)
     loss = loss_mse(y_test, y_predict)
     return loss
+
 
 def choose_x1_x2_lowest_activation(X, weight, bias, radius):
     if radius < 0:
@@ -111,7 +113,7 @@ def compute_weights_biases_layer1(X, y, weights, biases, radius=0):
     N1 = len(weights[1])
     weights_l1 = []
     biases_l1 = []
-    for i in tqdm(range(N1)):
+    for i in tqdm(range(N1), desc="Layer1 sampling: "):
         x_1, x_2 = choose_x1_x2_lowest_activation(X, weights[0][:, i], biases[0][i], radius)
         w1i_hat = (x_2 - x_1) / (np.linalg.norm(x_2 - x_1)) ** 2
         b1_hat = np.dot(x_1, w1i_hat)
@@ -120,14 +122,17 @@ def compute_weights_biases_layer1(X, y, weights, biases, radius=0):
     return np.transpose(weights_l1), biases_l1
 
 
-def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, radius):
+def choose_best_alpha(
+    X_train, y_train, X_test, y_test, weights_nn, biases_nn, radius, verbose=1
+):
     weights_l1, biases_l1 = compute_weights_biases_layer1(
         X_train, y_train, weights_nn, biases_nn, radius
     )
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
     min_loss = np.inf
     alpha_r, weights_r, biases_r = 0, None, None
-    print("alpha \tloss")
+    if verbose == 1:
+        print("alpha \tloss")
     for alpha in alpha_values:
         weights_l2, biases_l2 = compute_weights_biases_layer2_ridge(
             X_train, y_train, weights_l1, biases_l1, alpha=alpha
@@ -135,7 +140,8 @@ def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, r
         w, b = [weights_l1, weights_l2], [biases_l1, biases_l2]
         y_pred = predict_output(X_test, w, b)
         loss_alpha = loss_mse(y_pred, y_test)
-        print(f"{alpha} \t{loss_alpha:.3e}")
+        if verbose == 1:
+            print(f"{alpha} \t{loss_alpha:.3e}")
 
         if loss_alpha <= min_loss:
             min_loss = loss_alpha
@@ -147,6 +153,7 @@ def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, r
 
 def loss_vs_aslpha_radius(data: Dataset, model_nn: NeuralNet):
     from models.sampled_net import SampledNet
+
     max_radius = find_max_distance_all_pairs(data.X_train)
     radiuses = np.linspace(0, max_radius, 10)
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
@@ -157,7 +164,7 @@ def loss_vs_aslpha_radius(data: Dataset, model_nn: NeuralNet):
     mses["adam"] = adam_loss
 
     # calculate loss of SampledNet on radius and alpha combinations
-    mses["sampled_net"]={}
+    mses["sampled_net"] = {}
     for radius in radiuses:
         print(f"radius: {radius:.3f}")
         mses["sampled_net"][radius] = {}
@@ -179,6 +186,7 @@ def loss_vs_aslpha_radius(data: Dataset, model_nn: NeuralNet):
 
 def loss_vs_num_samples(datasets, models_nn):
     from models.sampled_net import SampledNet
+
     losses = {}
     for dataset, model in zip(datasets, models_nn):
         num_training = len(dataset.X_train)
@@ -192,17 +200,18 @@ def loss_vs_num_samples(datasets, models_nn):
 
 
 def choose_best_radius_alpha(
-    X_train, y_train, X_test, y_test, weights_nn, biases_nn, num_intervals=10
+    X_train, y_train, X_test, y_test, weights_nn, biases_nn, num_intervals=10, verbose=1
 ):
     max_radius = find_max_distance_all_pairs(X_train)
     radiuses = np.linspace(0, max_radius, num_intervals)
     alpha_r, radius_r, radius_r, weights_r, biases_r = 0, 0, 0, [], []
     min_mse = np.inf
     for r in radiuses:
-        print()
-        print(f"radius: {r:.3f}")
+        if verbose == 1:
+            print()
+            print(f"radius: {r:.3f}")
         alpha, w, b = choose_best_alpha(
-            X_train, y_train, X_test, y_test, weights_nn, biases_nn, r
+            X_train, y_train, X_test, y_test, weights_nn, biases_nn, r, verbose=verbose
         )
         y_pred = predict_output(X_test, w, b)
         mse = loss_mse(y_pred, y_test)

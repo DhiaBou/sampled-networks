@@ -10,7 +10,7 @@ class NeuralNet(Model):
     def __init__(self):
         super().__init__()
 
-    def fit(self, X_train, y_train, layers, validation_split=0.0, epochs=200):
+    def fit(self, X_train, y_train, layers, validation_split=0.2, epochs=200):
         """Train the neural network on data X_train and targets y_train.
 
         Args:

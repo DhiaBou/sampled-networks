@@ -25,7 +25,7 @@ class Dataset:
         self.y_train = []
         self.y_test = []
 
-    def load_data_from_csv(self, csv_file, x_cols, y_cols, skiprows = 0):
+    def load_data_from_csv(self, csv_file, x_cols, y_cols, skiprows=0):
         """Load data from CSV file."""
         data = np.loadtxt(csv_file, delimiter=",", skiprows=skiprows)
         self.X = data[:, 0:x_cols]
@@ -56,3 +56,14 @@ class Dataset:
             self.X, self.y, test_size=test_size
         )
         return self
+
+    def get_random_subset(self, num_samples):
+        """Randomly split dataset into a smaller subset and returns that."""
+        if num_samples > len(self.X):
+            raise ValueError("Num samples exceeded dataset size")
+
+        indices = np.random.choice(self.X.shape[0], size=num_samples, replace=False)
+        X_subset = self.X[indices]
+        y_subset = self.y[indices]
+
+        return X_subset, y_subset

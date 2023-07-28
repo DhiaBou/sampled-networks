@@ -19,6 +19,7 @@ class SampledNet(Model):
         layer2="ridge",
         alpha=-1,
         num_intervals=10,
+        verbose=1,
     ):
         """
         Trains the sampled network model with provided training data by learning the weights and biases.
@@ -32,6 +33,7 @@ class SampledNet(Model):
         - layer2: Configuration of the second layer ("classic" or "ridge" or "lstsq") (Default: "classic")
         - alpha: Regularization strength for Ridge regression (Default: -1, find best alpha)
         - num_intervals: Number of radius, equal distances between 0 and max_distance between X_train pairs (Default: 10)
+        - verbose: Flag to print progress in finding hyperparameters
 
         Returns:
         - Alpha: Optimal or chosen alpha value
@@ -49,6 +51,7 @@ class SampledNet(Model):
                 model.weights,
                 model.biases,
                 num_intervals=num_intervals,
+                verbose=verbose,
             )
 
         elif layer2 == "ridge" and radius != -1 and alpha == -1:
@@ -56,7 +59,14 @@ class SampledNet(Model):
                 X_train, y_train, test_size=validation_split
             )
             alpha, self.weights, self.biases = choose_best_alpha(
-                X_train, y_train, X_val, y_val, model.weights, model.biases, radius=radius
+                X_train,
+                y_train,
+                X_val,
+                y_val,
+                model.weights,
+                model.biases,
+                radius=radius,
+                verbose=verbose,
             )
 
         elif layer2 == "ridge" and radius == -1 and alpha != 1:

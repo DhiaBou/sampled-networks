@@ -116,8 +116,8 @@ def plot_loss_vs_alpha_radius(losses):
         radius_str = "{:0.2f}".format(float(radius))
         ax.plot(x, y, marker="o", label=f"Radius: {radius_str}")
 
-    ax.axhline(y=losses["adam"], color='r', linestyle='--', label='loss adam') 
-    
+    ax.axhline(y=losses["adam"], color="r", linestyle="--", label="loss adam")
+
     ax.set_xlabel("Alpha (log scale)")
     ax.set_ylabel("MSE")
     ax.set_xscale("log")

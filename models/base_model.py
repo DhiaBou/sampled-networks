@@ -1,12 +1,13 @@
 import numpy as np
 import tensorflow as tf
 
+
 class Model:
     """The base neural networks model"""
 
     def __init__(self):
         """Initializes the weights and biases as empty lists"""
-        self.weights = []  
+        self.weights = []
         self.biases = []
 
     def predict(self, X):

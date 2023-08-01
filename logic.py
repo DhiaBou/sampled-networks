@@ -37,7 +37,7 @@ def loss_model_on_test(model, X_test, y_test):
 def choose_x1_x2_lowest_activation(X, weight, bias, radius):
     if radius < 0:
         raise ValueError(f"{radius} Expected to be non negative")
-    x_min_activation = X[np.argmin(np.dot(X, weight) - bias)]
+    x_min_activation = X[np.argmin(np.abs(np.dot(X, weight) - bias))]
     distances_to_xmin = np.linalg.norm(X - x_min_activation, axis=1)
     X_closest_indices = np.where(distances_to_xmin <= radius)[0]
     weight_norm = np.linalg.norm(weight)
@@ -52,13 +52,17 @@ def choose_x1_x2_lowest_activation(X, weight, bias, radius):
         x_1 = X[i]
         X_other = np.delete(X, i, axis=0)  # remove x_1 from X
         diffs = X_other - X[i]
-        angles = np.arccos((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm))
+        angles = np.arccos(np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1)) 
         min_angle_i = np.argmin(angles)
         d = angles[min_angle_i]
         if d < min_value:
             min_value = d
             x_1_retur = x_1
             x_2_retur = X_other[min_angle_i]
+
+    if(x_1_retur is None):
+        print(1)
+        raise ValueError("hhhh")
 
     return x_1_retur, x_2_retur
 

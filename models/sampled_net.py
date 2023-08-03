@@ -1,11 +1,11 @@
 import numpy as np
-from models.base_model import Model
+from models.base_model import BaseModel
 from logic import *
 from models.neural_net import NeuralNet
 from sklearn.model_selection import train_test_split
 
 
-class SampledNet(Model):
+class SampledNet(BaseModel):
     def __init__(self):
         super().__init__()
 
@@ -13,7 +13,7 @@ class SampledNet(Model):
         self,
         X_train,
         y_train,
-        model: NeuralNet,
+        model,
         radius=-1,
         validation_split=0.2,
         layer2="ridge",
@@ -27,7 +27,7 @@ class SampledNet(Model):
         Parameters:
         - X_train: Input training data
         - y_train: Output training data
-        - model: Instance of NeuralNet class representing the trained neural network
+        - model: Instance of BaseModel class representing the trained neural network
         - radius: Radius parameter for the distance to the least activator data point (Default: -1, find best radius)
         - validation_split: Proportion of the dataset to include in the validation split (Default: 0.2)
         - layer2: Configuration of the second layer ("classic" or "ridge" or "lstsq") (Default: "classic")
@@ -73,8 +73,8 @@ class SampledNet(Model):
             raise ValueError("cannot determine best radius given alpha")
 
         else:
-            weights_l1, biases_l1 = compute_weights_biases_layer1(
-                X_train, y_train, model.weights, model.biases, radius
+            weights_l1, biases_l1, _ = compute_weights_biases_layer1(
+                X_train, model.weights, model.biases, radius
             )
             weights_l2, biases_l2 = self._compute_weights_biases_layer2(
                 X_train,

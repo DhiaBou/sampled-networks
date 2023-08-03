@@ -1,10 +1,10 @@
 import numpy as np
 import sklearn
-from models.base_model import Model
+from models.base_model import BaseModel
 import tensorflow as tf
 
 
-class NeuralNet(Model):
+class NeuralNet(BaseModel):
     """Neural network model built using TensorFlow Keras and optimizer Adam."""
 
     def __init__(self):

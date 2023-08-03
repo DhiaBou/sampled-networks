@@ -34,14 +34,14 @@ def loss_model_on_test(model, X_test, y_test):
     return loss
 
 
-def choose_x1_x2_lowest_activation(X, weight, bias, radius):
+def choose_x1_x2(X, weight, bias, radius=0):
     if radius < 0:
         raise ValueError(f"{radius} Expected to be non negative")
-    x_min_activation = X[np.argmin(np.abs(np.dot(X, weight) - bias))]
-    distances_to_xmin = np.linalg.norm(X - x_min_activation, axis=1)
-    X_closest_indices = np.where(distances_to_xmin <= radius)[0]
+    x_min_activation_index = np.argmin(np.abs(np.dot(X, weight) - bias))
+    distances_to_bias_origin = np.abs(np.dot(X, weight) - bias)
+    X_closest_indices = np.where((distances_to_bias_origin <= radius) | (np.arange(X.shape[0]) == x_min_activation_index))[0]
     weight_norm = np.linalg.norm(weight)
-
+    
     if len(X_closest_indices) == 0:
         return None, None
 
@@ -60,10 +60,6 @@ def choose_x1_x2_lowest_activation(X, weight, bias, radius):
             x_1_retur = x_1
             x_2_retur = X_other[min_angle_i]
 
-    if(x_1_retur is None):
-        print(1)
-        raise ValueError("hhhh")
-
     return x_1_retur, x_2_retur
 
 
@@ -76,7 +72,7 @@ def find_max_distance_all_pairs(X):
 
 
 def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1):
-    N2 = 1 if np.ndim(y) == 1 else y.shape[1]
+    N2 = len(weights[1][0])
     N1 = len(weights[1])
     weights_l2 = weights[1].copy()
     biases_l2 = biases[1].copy()
@@ -111,26 +107,28 @@ def compute_weights_biases_layer2_ridge(X, y, weights_l1, biases_l1, alpha=1):
     return weights_l2, biases_l2
 
 
-def compute_weights_biases_layer1(X, y, weights, biases, radius=0):
+def compute_weights_biases_layer1(X, weights, biases, radius=0):
     if radius < 0:
         raise ValueError(f"{radius} Expected to be non negative")
     N1 = len(weights[1])
     weights_l1 = []
     biases_l1 = []
+    x_pairs = []
     for i in tqdm(range(N1), desc="Layer1 sampling: "):
-        x_1, x_2 = choose_x1_x2_lowest_activation(X, weights[0][:, i], biases[0][i], radius)
+        x_1, x_2 = choose_x1_x2(X, weights[0][:, i], biases[0][i], radius)
         w1i_hat = (x_2 - x_1) / (np.linalg.norm(x_2 - x_1)) ** 2
         b1_hat = np.dot(x_1, w1i_hat)
+        x_pairs.append((x_1, x_2))
         weights_l1.append(w1i_hat)
         biases_l1.append(b1_hat)
-    return np.transpose(weights_l1), biases_l1
+    return np.transpose(weights_l1), biases_l1, x_pairs
 
 
 def choose_best_alpha(
     X_train, y_train, X_test, y_test, weights_nn, biases_nn, radius, verbose=1
 ):
-    weights_l1, biases_l1 = compute_weights_biases_layer1(
-        X_train, y_train, weights_nn, biases_nn, radius
+    weights_l1, biases_l1, _ = compute_weights_biases_layer1(
+        X_train, weights_nn, biases_nn, radius
     )
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
     min_loss = np.inf
@@ -172,8 +170,8 @@ def loss_vs_aslpha_radius(data: Dataset, model_nn: NeuralNet):
     for radius in radiuses:
         print(f"radius: {radius:.3f}")
         mses["sampled_net"][radius] = {}
-        weights_l1, biases_l1 = compute_weights_biases_layer1(
-            data.X_train, data.y_train, model_nn.weights, model_nn.biases, radius
+        weights_l1, biases_l1, _ = compute_weights_biases_layer1(
+            data.X_train, model_nn.weights, model_nn.biases, radius
         )
         for alpha in alpha_values:
             weights_l2, biases_l2 = compute_weights_biases_layer2_ridge(

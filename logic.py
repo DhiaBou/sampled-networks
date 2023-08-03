@@ -39,9 +39,11 @@ def choose_x1_x2(X, weight, bias, radius=0):
         raise ValueError(f"{radius} Expected to be non negative")
     x_min_activation_index = np.argmin(np.abs(np.dot(X, weight) - bias))
     distances_to_bias_origin = np.abs(np.dot(X, weight) - bias)
-    X_closest_indices = np.where((distances_to_bias_origin <= radius) | (np.arange(X.shape[0]) == x_min_activation_index))[0]
+    X_closest_indices = np.where(
+        (distances_to_bias_origin <= radius) | (np.arange(X.shape[0]) == x_min_activation_index)
+    )[0]
     weight_norm = np.linalg.norm(weight)
-    
+
     if len(X_closest_indices) == 0:
         return None, None
 
@@ -52,7 +54,7 @@ def choose_x1_x2(X, weight, bias, radius=0):
         x_1 = X[i]
         X_other = np.delete(X, i, axis=0)  # remove x_1 from X
         diffs = X_other - X[i]
-        angles = np.arccos(np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1)) 
+        angles = np.arccos(np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1))
         min_angle_i = np.argmin(angles)
         d = angles[min_angle_i]
         if d < min_value:
@@ -124,12 +126,8 @@ def compute_weights_biases_layer1(X, weights, biases, radius=0):
     return np.transpose(weights_l1), biases_l1, x_pairs
 
 
-def choose_best_alpha(
-    X_train, y_train, X_test, y_test, weights_nn, biases_nn, radius, verbose=1
-):
-    weights_l1, biases_l1, _ = compute_weights_biases_layer1(
-        X_train, weights_nn, biases_nn, radius
-    )
+def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, radius, verbose=1):
+    weights_l1, biases_l1, _ = compute_weights_biases_layer1(X_train, weights_nn, biases_nn, radius)
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
     min_loss = np.inf
     alpha_r, weights_r, biases_r = 0, None, None

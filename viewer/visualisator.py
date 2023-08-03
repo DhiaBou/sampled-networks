@@ -10,6 +10,7 @@ import matplotlib.colors as mcolors
 
 colors_list = list(mcolors.TABLEAU_COLORS.values())
 
+
 def visualize_data(Y_1, Y_2):
     Y_1, Y_2 = np.array(Y_1), np.array(Y_2)
     n, d = len(Y_1), Y_1.shape[1]
@@ -64,9 +65,7 @@ def plot_vector_differences(weights1, weights2):
     range_end = 90
     bin_size = 10
 
-    hist, bins = np.histogram(
-        angles, bins=np.arange(range_start, range_end + bin_size, bin_size)
-    )
+    hist, bins = np.histogram(angles, bins=np.arange(range_start, range_end + bin_size, bin_size))
 
     plt.figure()
     plt.bar(bins[:-1], hist, width=bin_size, align="edge", edgecolor="black")
@@ -162,7 +161,7 @@ def plot_loss_f_num_samples(losses):
 
 def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights):
     X = np.array(X)
-    plt.scatter(X[:,0], X[:,1]) # plot points in X
+    plt.scatter(X[:, 0], X[:, 1])  # plot points in X
     from matplotlib import cm
 
     for (x1, x2), w in zip(x_1_x2_tuples, weights):
@@ -170,15 +169,15 @@ def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights):
         import random
 
         color = random.choice(colors_list)
-        plt.scatter(x1[0], x1[1], color = color)
-    # Plot line segment
+        plt.scatter(x1[0], x1[1], color=color)
+        # Plot line segment
         plt.plot([x1[0], x2[0]], [x1[1], x2[1]], color=color, linewidth=0.5)
-    
+
         w_norm = np.linalg.norm(w)
         x_1_x_2_norm = np.linalg.norm(np.array(x2) - np.array(x1))
         w = w * 0.5 * x_1_x_2_norm / w_norm
 
-    # Plot arrow
+        # Plot arrow
         plt.arrow(x1[0], x1[1], w[0], w[1], head_width=0.02, color=color, linewidth=0.5)
 
     plt.show()

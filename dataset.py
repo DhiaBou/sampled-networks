@@ -37,9 +37,7 @@ class Dataset:
         X = np.random.uniform(-1, 1, size=(num_samples, xd))
         a = np.array([2 * j / xd - 1 for j in range(1, xd + 1)])
 
-        y = np.array(
-            [np.sqrt(3 / 2) * (np.linalg.norm(x - a) - np.linalg.norm(x + a)) for x in X]
-        )
+        y = np.array([np.sqrt(3 / 2) * (np.linalg.norm(x - a) - np.linalg.norm(x + a)) for x in X])
         y = y.reshape(-1, 1)
         self.X = X
         self.y = y

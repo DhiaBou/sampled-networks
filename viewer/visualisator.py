@@ -7,11 +7,12 @@ from matplotlib.ticker import LogFormatter, LogLocator
 import csv
 import json
 import matplotlib.colors as mcolors
+from itertools import zip_longest
 
 colors_list = list(mcolors.TABLEAU_COLORS.values())
 
 
-def visualize_data(Y_1, Y_2):
+def visualize_data(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):
     Y_1, Y_2 = np.array(Y_1), np.array(Y_2)
     n, d = len(Y_1), Y_1.shape[1]
 
@@ -26,8 +27,8 @@ def visualize_data(Y_1, Y_2):
         Y_1_sorted = Y_1[sorting_indices[:, dim], dim]
         Y_2_sorted = Y_2[sorting_indices[:, dim], dim]
 
-        ax.plot(range(n), Y_1_sorted, label="Y 1")
-        ax.plot(range(n), Y_2_sorted, label="Y 2")
+        ax.plot(range(n), Y_1_sorted, label=Y1)
+        ax.plot(range(n), Y_2_sorted, label=Y2)
         ax.set_ylabel(f"Dimension {dim + 1}")
         ax.legend()
 
@@ -35,60 +36,67 @@ def visualize_data(Y_1, Y_2):
     plt.show()
 
 
-def plot_vector_differences(weights1, weights2):
-    angles = np.degrees(
-        [
-            np.arccos(
-                np.clip(
-                    np.dot(vec1 / np.linalg.norm(vec1), vec2 / np.linalg.norm(vec2)),
-                    -1.0,
-                    1.0,
-                )
-            )
-            for vec1, vec2 in zip(weights1, weights2)
-        ]
-    )
-    angles = np.sort(angles)
-    x = np.arange(len(angles))
+def plot_vector_differences(weights1, weights2, radii=[], losses=[]):
+    fig, ax = plt.subplots()
 
-    # Plot angles between corresponding vectors
-    plt.figure()
-    plt.plot(x, angles, marker="o")
+    for w1, w2, r, l in zip_longest(weights1, weights2, radii, losses):
+        ww1 = np.transpose(w1)
+        ww2 = np.transpose(w2)
+        angles = np.degrees(
+            [
+                np.arccos(
+                    np.clip(
+                        np.dot(vec1 / np.linalg.norm(vec1), vec2 / np.linalg.norm(vec2)),
+                        -1.0,
+                        1.0,
+                    )
+                )
+                for vec1, vec2 in zip(ww1, ww2)
+            ]
+        )
+        angles = np.sort(angles)
+        x = np.arange(len(angles))
+        label = "Mean: {:0.2f}".format(float(np.mean(angles)))
+        if r is not None and l is not None:
+            label = "r: {:0.2f}".format(float(r)) + " loss: {:0.3e}".format(float(l)) + " " + label
+        ax.plot(x, angles, marker="o", label=label)
+
     plt.xlabel("Vector Index")
     plt.ylabel("Angle (degrees)")
     plt.title("Angles between corresponding vectors")
     plt.grid(True)
+    ax.legend()
     plt.show()
 
-    # Calculate and plot histogram of angle ranges
-    range_start = 0
-    range_end = 90
-    bin_size = 10
+    # # Calculate and plot histogram of angle ranges
+    # range_start = 0
+    # range_end = 90
+    # bin_size = 10
 
-    hist, bins = np.histogram(angles, bins=np.arange(range_start, range_end + bin_size, bin_size))
+    # hist, bins = np.histogram(angles, bins=np.arange(range_start, range_end + bin_size, bin_size))
 
-    plt.figure()
-    plt.bar(bins[:-1], hist, width=bin_size, align="edge", edgecolor="black")
-    plt.xlabel("Angle Range")
-    plt.ylabel("Count")
-    plt.title("Number of Angles in Each Range")
-    plt.xticks(np.arange(range_start, range_end, bin_size))
-    plt.grid(True)
-    mean_angle = np.mean(angles)
-    sd_angle = np.std(angles)
+    # plt.figure()
+    # plt.bar(bins[:-1], hist, width=bin_size, align="edge", edgecolor="black")
+    # plt.xlabel("Angle Range")
+    # plt.ylabel("Count")
+    # plt.title("Number of Angles in Each Range")
+    # plt.xticks(np.arange(range_start, range_end, bin_size))
+    # plt.grid(True)
+    # mean_angle = np.mean(angles)
+    # sd_angle = np.std(angles)
 
-    plt.annotate(
-        f"Mean: {mean_angle:.2f}\nSD: {sd_angle:.2f}",
-        xy=(1, 0),
-        xycoords="axes fraction",
-        xytext=(-20, -20),
-        textcoords="offset points",
-        horizontalalignment="right",
-        verticalalignment="top",
-        fontsize=12,
-    )
+    # plt.annotate(
+    #     f"Mean: {mean_angle:.2f}\nSD: {sd_angle:.2f}",
+    #     xy=(1, 0),
+    #     xycoords="axes fraction",
+    #     xytext=(-20, -20),
+    #     textcoords="offset points",
+    #     horizontalalignment="right",
+    #     verticalalignment="top",
+    #     fontsize=12,
+    # )
 
-    plt.show()
+    # plt.show()
 
 
 def write_to_file(output_file, data):
@@ -117,7 +125,7 @@ def plot_loss_vs_alpha_radius(losses):
         radius_str = "{:0.2f}".format(float(radius))
         ax.plot(x, y, marker="o", label=f"Radius: {radius_str}")
 
-    ax.axhline(y=losses["adam"], color="r", linestyle="--", label="loss adam")
+    ax.axhline(y=losses["given_model"], color="r", linestyle="--", label="loss given_model")
 
     ax.set_xlabel("Alpha (log scale)")
     ax.set_ylabel("MSE")

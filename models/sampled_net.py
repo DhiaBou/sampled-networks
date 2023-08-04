@@ -40,7 +40,9 @@ class SampledNet(BaseModel):
         - Radius: Optimal or chosen radius value
         """
         if layer2 == "ridge" and radius == -1 and alpha == -1:
-            X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_split)
+            X_train, X_val, y_train, y_val = train_test_split(
+                X_train, y_train, test_size=validation_split
+            )
             alpha, radius, self.weights, self.biases = choose_best_radius_alpha(
                 X_train,
                 y_train,
@@ -53,7 +55,9 @@ class SampledNet(BaseModel):
             )
 
         elif layer2 == "ridge" and radius != -1 and alpha == -1:
-            X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_split)
+            X_train, X_val, y_train, y_val = train_test_split(
+                X_train, y_train, test_size=validation_split
+            )
             alpha, self.weights, self.biases = choose_best_alpha(
                 X_train,
                 y_train,
@@ -90,10 +94,14 @@ class SampledNet(BaseModel):
         self, X, y, weights, biases, weights_l1, biases_l1, alpha=1, layer2="classic"
     ):
         if layer2 == "classic":
-            return compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1)
+            return compute_weights_biases_layer2_classic(
+                X, y, weights, biases, weights_l1, biases_l1
+            )
         elif layer2 == "lstsq":
             return compute_weights_biases_layer2_lstsq(X, y, weights_l1, biases_l1)
         elif layer2 == "ridge":
             return compute_weights_biases_layer2_ridge(X, y, weights_l1, biases_l1, alpha=alpha)
         else:
-            raise ValueError(f"Invalid layer2 value: {layer2}. Expected 'classic', 'lstsq', or 'ridge'")
+            raise ValueError(
+                f"Invalid layer2 value: {layer2}. Expected 'classic', 'lstsq', or 'ridge'"
+            )

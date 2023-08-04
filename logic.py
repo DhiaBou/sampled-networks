@@ -15,6 +15,11 @@ def loss_r2(y_true, y_pred):
     return sklearn.metrics.r2_score(y_true, y_pred)
 
 
+def validate_radius(radius):
+    if radius < 0 or radius > 1:
+        raise ValueError(f"Expected radius to be in [0, 1], got {radius}")
+
+
 def predict_output(X, weights, biases):
     num_layers = len(weights)
     output = X
@@ -35,17 +40,18 @@ def loss_model_on_test(model, X_test, y_test):
 
 
 def choose_x1_x2(X, weight, bias, radius=0):
-    if radius < 0:
-        raise ValueError(f"{radius} Expected to be non negative")
+    validate_radius(radius)
+
+    max_dist = find_max_distance_to_bias_origin(X, weight, bias)
+
     x_min_activation_index = np.argmin(np.abs(np.dot(X, weight) - bias))
+
     distances_to_bias_origin = np.abs(np.dot(X, weight) - bias)
     X_closest_indices = np.where(
-        (distances_to_bias_origin <= radius) | (np.arange(X.shape[0]) == x_min_activation_index)
+        (distances_to_bias_origin <= radius * max_dist)
+        | (np.arange(X.shape[0]) == x_min_activation_index)
     )[0]
     weight_norm = np.linalg.norm(weight)
-
-    if len(X_closest_indices) == 0:
-        return None, None
 
     min_value = float("inf")
     x_1_retur = None
@@ -54,7 +60,9 @@ def choose_x1_x2(X, weight, bias, radius=0):
         x_1 = X[i]
         X_other = np.delete(X, i, axis=0)  # remove x_1 from X
         diffs = X_other - X[i]
-        angles = np.arccos(np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1))
+        angles = np.arccos(
+            np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1)
+        )
         min_angle_i = np.argmin(angles)
         d = angles[min_angle_i]
         if d < min_value:
@@ -65,12 +73,8 @@ def choose_x1_x2(X, weight, bias, radius=0):
     return x_1_retur, x_2_retur
 
 
-def find_max_distance_all_pairs(X):
-    diffs = X[:, None, :] - X[None, :, :]
-    distances = np.sqrt((diffs**2).sum(-1))
-    np.fill_diagonal(distances, np.nan)  # ignore self pairs
-    max_distance = np.nanmax(distances)
-    return max_distance
+def find_max_distance_to_bias_origin(X, weight, bias):
+    return np.max(np.abs(np.dot(X, weight) - bias))
 
 
 def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1):
@@ -110,8 +114,8 @@ def compute_weights_biases_layer2_ridge(X, y, weights_l1, biases_l1, alpha=1):
 
 
 def compute_weights_biases_layer1(X, weights, biases, radius=0):
-    if radius < 0:
-        raise ValueError(f"{radius} Expected to be non negative")
+    validate_radius(radius)
+
     N1 = len(weights[1])
     weights_l1 = []
     biases_l1 = []
@@ -126,20 +130,24 @@ def compute_weights_biases_layer1(X, weights, biases, radius=0):
     return np.transpose(weights_l1), biases_l1, x_pairs
 
 
-def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, radius, verbose=1):
+def choose_best_alpha(X_train, y_train, X_val, y_val, weights_nn, biases_nn, radius, verbose=1):
     weights_l1, biases_l1, _ = compute_weights_biases_layer1(X_train, weights_nn, biases_nn, radius)
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
     min_loss = np.inf
     alpha_r, weights_r, biases_r = 0, None, None
     if verbose == 1:
-        print("alpha \tloss")
+        print("alpha \tloss validation")
+
     for alpha in alpha_values:
         weights_l2, biases_l2 = compute_weights_biases_layer2_ridge(
             X_train, y_train, weights_l1, biases_l1, alpha=alpha
         )
+
         w, b = [weights_l1, weights_l2], [biases_l1, biases_l2]
-        y_pred = predict_output(X_test, w, b)
-        loss_alpha = loss_mse(y_pred, y_test)
+
+        y_pred = predict_output(X_val, w, b)
+        loss_alpha = loss_mse(y_pred, y_val)
+
         if verbose == 1:
             print(f"{alpha} \t{loss_alpha:.3e}")
 
@@ -151,17 +159,15 @@ def choose_best_alpha(X_train, y_train, X_test, y_test, weights_nn, biases_nn, r
     return alpha_r, weights_r, biases_r
 
 
-def loss_vs_aslpha_radius(data: Dataset, model_nn: NeuralNet):
+def loss_vs_aslpha_radius__sample_trained_on_dataset(data: Dataset, model_nn: NeuralNet):
     from models.sampled_net import SampledNet
 
-    max_radius = find_max_distance_all_pairs(data.X_train)
-    radiuses = np.linspace(0, max_radius, 10)
-    alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
+    radiuses = np.linspace(0, 1, 10)
+    alpha_values = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 1e1, 1e2]
     mses = {}
 
-    # calculate the loss of adam
-    adam_loss = loss_model_on_test(model_nn, data.X_test, data.y_test)
-    mses["adam"] = adam_loss
+    given_model_loss = loss_model_on_test(model_nn, data.X_test, data.y_test)
+    mses["given_model"] = given_model_loss
 
     # calculate loss of SampledNet on radius and alpha combinations
     mses["sampled_net"] = {}
@@ -202,8 +208,7 @@ def loss_vs_num_samples(datasets, models_nn):
 def choose_best_radius_alpha(
     X_train, y_train, X_test, y_test, weights_nn, biases_nn, num_intervals=10, verbose=1
 ):
-    max_radius = find_max_distance_all_pairs(X_train)
-    radiuses = np.linspace(0, max_radius, num_intervals)
+    radiuses = np.linspace(0, 1, num_intervals)
     alpha_r, radius_r, radius_r, weights_r, biases_r = 0, 0, 0, [], []
     min_mse = np.inf
     for r in radiuses:

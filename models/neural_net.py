@@ -9,6 +9,7 @@ class NeuralNet(BaseModel):
 
     def __init__(self):
         super().__init__()
+        self.model = None
 
     def fit(self, X_train, y_train, layers, validation_split=0.2, epochs=200):
         """Train the neural network on data X_train and targets y_train.
@@ -41,6 +42,22 @@ class NeuralNet(BaseModel):
             verbose=0,
         )
 
+        self.model = model
+
         # Extract weights and biases
         self.weights = [layer.get_weights()[0] for layer in model.layers]
         self.biases = [-layer.get_weights()[1] for layer in model.layers]
+
+    def resume_training(self, X_train, y_train, initial_epoch=0, epochs=200, validation_split=0.2):
+        self.model.fit(
+            X_train,
+            y_train,
+            validation_split=validation_split,
+            initial_epoch=initial_epoch,
+            epochs=epochs,
+            verbose=0,
+        )
+
+        # Extract weights and biases
+        self.weights = [layer.get_weights()[0] for layer in self.model.layers]
+        self.biases = [-layer.get_weights()[1] for layer in self.model.layers]

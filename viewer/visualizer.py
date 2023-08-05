@@ -9,8 +9,6 @@ import json
 import matplotlib.colors as mcolors
 from itertools import zip_longest
 
-colors_list = list(mcolors.TABLEAU_COLORS.values())
-
 
 def visualize_data(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):
     Y_1, Y_2 = np.array(Y_1), np.array(Y_2)
@@ -172,11 +170,13 @@ def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights):
     plt.scatter(X[:, 0], X[:, 1])  # plot points in X
     from matplotlib import cm
 
+    i = 0
     for (x1, x2), w in zip(x_1_x2_tuples, weights):
         import matplotlib.colors as mcolors
-        import random
 
-        color = random.choice(colors_list)
+        colors_list = list(mcolors.TABLEAU_COLORS.values())
+
+        color = colors_list[i % len(colors_list)]
         plt.scatter(x1[0], x1[1], color=color)
         # Plot line segment
         plt.plot([x1[0], x2[0]], [x1[1], x2[1]], color=color, linewidth=0.5)
@@ -187,5 +187,16 @@ def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights):
 
         # Plot arrow
         plt.arrow(x1[0], x1[1], w[0], w[1], head_width=0.02, color=color, linewidth=0.5)
+        plt.text(
+            x1[0] + w[0],
+            x1[1] + w[1],
+            str(i + 1),
+            color="black",
+            alpha=0.8,
+            fontsize=7,
+            ha="center",
+            va="center",
+        )
+        i += 1
 
     plt.show()

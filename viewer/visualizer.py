@@ -25,12 +25,59 @@ def visualize_data(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):
         Y_1_sorted = Y_1[sorting_indices[:, dim], dim]
         Y_2_sorted = Y_2[sorting_indices[:, dim], dim]
 
-        ax.plot(range(n), Y_1_sorted, label=Y1)
-        ax.plot(range(n), Y_2_sorted, label=Y2)
+        ax.plot(range(n), Y_2_sorted, label=Y2, color="orange")
+        ax.plot(range(n), Y_1_sorted, label=Y1, color="blue")
         ax.set_ylabel(f"Dimension {dim + 1}")
         ax.legend()
 
     axs[-1].set_xlabel("Sample")
+    plt.show()
+
+
+def plot_weight_biases_differences(weights1, weights2, biases1, biases2):
+    weights1 = np.transpose(weights1)
+    weights2 = np.transpose(weights2)
+    angles = np.degrees(
+        [
+            np.arccos(
+                np.clip(
+                    np.dot(vec1 / np.linalg.norm(vec1), vec2 / np.linalg.norm(vec2)),
+                    -1.0,
+                    1.0,
+                )
+            )
+            for vec1, vec2 in zip(weights1, weights2)
+        ]
+    )
+
+    # Get the indices that would sort the angles
+    sorted_indices = np.argsort(angles)
+
+    # Use the indices to order the angles and biases
+    angles = angles[sorted_indices]
+    biases1_sorted = np.array(biases1)[sorted_indices]
+    biases2_sorted = np.array(biases2)[sorted_indices]
+
+    x = np.arange(len(angles))
+
+    # Plot angles between corresponding vectors
+    plt.figure()
+    plt.plot(x, angles, marker="o")
+    plt.xlabel("Vector Index")
+    plt.ylabel("Angle (degrees)")
+    plt.title("Angles between corresponding vectors")
+    plt.grid(True)
+    plt.show()
+
+    # Plot sorted biases
+    fig, ax = plt.subplots()
+    ax.plot(x, biases1_sorted, label="biases1")
+    ax.plot(x, biases2_sorted, label="biases2")
+    plt.xlabel("Vector Index (sorted by angle)")
+    plt.ylabel("Bias Value")
+    plt.title("Biases from biases1 and biases2 (sorted by angle)")
+    plt.grid(True)
+    ax.legend()
     plt.show()
 
 
@@ -65,36 +112,6 @@ def plot_vector_differences(weights1, weights2, radii=[], losses=[]):
     plt.grid(True)
     ax.legend()
     plt.show()
-
-    # # Calculate and plot histogram of angle ranges
-    # range_start = 0
-    # range_end = 90
-    # bin_size = 10
-
-    # hist, bins = np.histogram(angles, bins=np.arange(range_start, range_end + bin_size, bin_size))
-
-    # plt.figure()
-    # plt.bar(bins[:-1], hist, width=bin_size, align="edge", edgecolor="black")
-    # plt.xlabel("Angle Range")
-    # plt.ylabel("Count")
-    # plt.title("Number of Angles in Each Range")
-    # plt.xticks(np.arange(range_start, range_end, bin_size))
-    # plt.grid(True)
-    # mean_angle = np.mean(angles)
-    # sd_angle = np.std(angles)
-
-    # plt.annotate(
-    #     f"Mean: {mean_angle:.2f}\nSD: {sd_angle:.2f}",
-    #     xy=(1, 0),
-    #     xycoords="axes fraction",
-    #     xytext=(-20, -20),
-    #     textcoords="offset points",
-    #     horizontalalignment="right",
-    #     verticalalignment="top",
-    #     fontsize=12,
-    # )
-
-    # plt.show()
 
 
 def write_to_file(output_file, data):
@@ -165,18 +182,28 @@ def plot_loss_f_num_samples(losses):
     plt.show()
 
 
-def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights):
+def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights, num_vectors=np.inf):
     X = np.array(X)
     plt.scatter(X[:, 0], X[:, 1])  # plot points in X
     from matplotlib import cm
 
-    i = 0
-    for (x1, x2), w in zip(x_1_x2_tuples, weights):
+    weight_norms = np.array([np.linalg.norm(w) for w in weights])
+    sorted_indices = np.argsort(weight_norms)[::-1]
+
+    if num_vectors > len(weights):
+        num_vectors = len(weights)
+
+    # Select the num_vectors largest weights and corresponding points
+    x_1_x2_tuples = [x_1_x2_tuples[i] for i in sorted_indices[:num_vectors]]
+    weights = [weights[i] for i in sorted_indices[:num_vectors]]
+    original_indices = sorted_indices[:num_vectors]
+
+    for (x1, x2), w, original_index in zip(x_1_x2_tuples, weights, original_indices):
         import matplotlib.colors as mcolors
 
         colors_list = list(mcolors.TABLEAU_COLORS.values())
 
-        color = colors_list[i % len(colors_list)]
+        color = colors_list[original_index % len(colors_list)]
         plt.scatter(x1[0], x1[1], color=color)
         # Plot line segment
         plt.plot([x1[0], x2[0]], [x1[1], x2[1]], color=color, linewidth=0.5)
@@ -184,19 +211,18 @@ def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights):
         w_norm = np.linalg.norm(w)
         x_1_x_2_norm = np.linalg.norm(np.array(x2) - np.array(x1))
         w = w * 0.5 * x_1_x_2_norm / w_norm
-
+        offset_arrow = 0.03 * (w / np.linalg.norm(w))
         # Plot arrow
         plt.arrow(x1[0], x1[1], w[0], w[1], head_width=0.02, color=color, linewidth=0.5)
         plt.text(
-            x1[0] + w[0],
-            x1[1] + w[1],
-            str(i + 1),
+            x1[0] + w[0] + offset_arrow[0],
+            x1[1] + w[1] + offset_arrow[1],
+            str(original_index + 1),
             color="black",
             alpha=0.8,
             fontsize=7,
             ha="center",
             va="center",
         )
-        i += 1
 
     plt.show()

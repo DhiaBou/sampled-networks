@@ -43,6 +43,14 @@ class Dataset:
         self.y = y
         return self
 
+    def create_dataset_sinus_2d(self, num_samples):
+        """Create synthetic Barron dataset."""
+        X = np.random.uniform(-np.pi, np.pi, size=(num_samples, 2))
+        y = np.array([[np.sin(x[0]), np.cos(x[1])] for x in X])
+        self.X = X
+        self.y = y
+        return self
+
     def scale(self, scaler):
         """Scale the input features."""
         self.X = scaler.fit_transform(self.X)

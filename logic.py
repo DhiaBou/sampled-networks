@@ -48,8 +48,7 @@ def choose_x1_x2(X, weight, bias, radius=0):
 
     distances_to_bias_origin = np.abs(np.dot(X, weight) - bias)
     X_closest_indices = np.where(
-        (distances_to_bias_origin <= radius * max_dist)
-        | (np.arange(X.shape[0]) == x_min_activation_index)
+        (distances_to_bias_origin <= radius * max_dist) | (np.arange(X.shape[0]) == x_min_activation_index)
     )[0]
     weight_norm = np.linalg.norm(weight)
 
@@ -60,9 +59,7 @@ def choose_x1_x2(X, weight, bias, radius=0):
         x_1 = X[i]
         X_other = np.delete(X, i, axis=0)  # remove x_1 from X
         diffs = X_other - X[i]
-        angles = np.arccos(
-            np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1)
-        )
+        angles = np.arccos(np.clip((diffs @ weight) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1))
         min_angle_i = np.argmin(angles)
         d = angles[min_angle_i]
         if d < min_value:
@@ -77,7 +74,7 @@ def find_max_distance_to_bias_origin(X, weight, bias):
     return np.max(np.abs(np.dot(X, weight) - bias))
 
 
-def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1):
+def compute_weights_biases_layer2_classico(X, y, weights, biases, weights_l1, biases_l1):
     N2 = len(weights[1][0])
     N1 = len(weights[1])
     weights_l2 = weights[1].copy()
@@ -87,8 +84,22 @@ def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, bia
             w1i_hat = weights_l1[:, i]
             b1_hat = biases_l1[i]
             min_x = min(X, key=lambda x: np.dot(x, w1i_hat))
-            if b1_hat < np.dot(min_x, w1i_hat) and biases[0][i] < b1_hat:
+            if b1_hat <= np.dot(min_x, w1i_hat):  # and biases[0][i] < b1_hat:
+                print("****************************")
                 biases_l2[j] = biases_l2[j] + weights[1][:, j][i] * (biases[0][i] - b1_hat)
+    return weights_l2, biases_l2
+
+
+def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1):
+    N2 = len(weights[1][0])
+    N1 = len(weights[1])
+    weights_l2 = weights[1].copy()
+    biases_l2 = biases[1].copy()
+    y_old = np.dot((np.maximum(0, np.dot(X, weights[0]) - biases[0])), weights[1]) - biases[1]
+    y_new = np.dot((np.maximum(0, np.dot(X, weights_l1) - biases_l1)), weights_l2) - biases_l2
+    delta = y_new - y_old
+    delta_avg = np.average(delta, axis=0)
+    biases_l2 = biases_l2 + delta_avg
     return weights_l2, biases_l2
 
 
@@ -122,7 +133,9 @@ def compute_weights_biases_layer1(X, weights, biases, radius=0):
     x_pairs = []
     for i in tqdm(range(N1), desc="Layer1 sampling: "):
         x_1, x_2 = choose_x1_x2(X, weights[0][:, i], biases[0][i], radius)
-        w1i_hat = (x_2 - x_1) / (np.linalg.norm(x_2 - x_1)) ** 2
+        x_2_x_1_norm = np.linalg.norm(x_2 - x_1)
+        weight_norm = np.linalg.norm(weights[0][:, i])
+        w1i_hat = (x_2 - x_1) * weight_norm / x_2_x_1_norm  # / (np.linalg.norm(x_2 - x_1))# ** 2
         b1_hat = np.dot(x_1, w1i_hat)
         x_pairs.append((x_1, x_2))
         weights_l1.append(w1i_hat)

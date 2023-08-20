@@ -1,8 +1,11 @@
-import numpy as np
-from models.base_model import BaseModel
-from logic import *
-from models.neural_net import NeuralNet
+from typing import Literal
+
 from sklearn.model_selection import train_test_split
+
+from models.base_model import BaseModel
+from utils.layer1_logic import compute_weights_biases_layer1
+from utils.layer2_logic import choose_best_radius_alpha, choose_best_alpha, compute_weights_biases_layer2_classic, \
+    compute_weights_biases_layer2_lstsq, compute_weights_biases_layer2_ridge
 
 
 class SampledNet(BaseModel):
@@ -10,16 +13,19 @@ class SampledNet(BaseModel):
         super().__init__()
 
     def fit(
-        self,
-        X_train,
-        y_train,
-        model,
-        radius=-1,
-        validation_split=0.2,
-        layer2="ridge",
-        alpha=-1,
-        num_intervals=10,
-        verbose=1,
+            self,
+            X_train,
+            y_train,
+            model,
+            radius=0,
+            validation_split=0.2,
+            layer2="classic",
+            alpha=-1,
+            num_intervals=10,
+            verbose=1,
+            project_onto_boundary=False,
+            augment_data=None,
+            choose_x_2: Literal["angle", "norm"] = "norm"
     ):
         """
         Trains the sampled network model with provided training data by learning the weights and biases.
@@ -40,28 +46,29 @@ class SampledNet(BaseModel):
         - Radius: Optimal or chosen radius value
         """
         if layer2 == "ridge" and radius == -1 and alpha == -1:
-            X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_split)
             alpha, radius, self.weights, self.biases = choose_best_radius_alpha(
                 X_train,
                 y_train,
-                X_val,
-                y_val,
                 model.weights,
                 model.biases,
                 num_intervals=num_intervals,
                 verbose=verbose,
+                validation_split=validation_split
             )
 
         elif layer2 == "ridge" and radius != -1 and alpha == -1:
+            weights_l1, biases_l1, x_1_x_2_pairs = compute_weights_biases_layer1(
+                X_train, model.weights, model.biases, radius, project_onto_boundary,
+                augment_data, choose_x_2
+            )
             X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_split)
             alpha, self.weights, self.biases = choose_best_alpha(
                 X_train,
                 y_train,
                 X_val,
                 y_val,
-                model.weights,
-                model.biases,
-                radius=radius,
+                weights_l1,
+                biases_l1,
                 verbose=verbose,
             )
 
@@ -69,8 +76,9 @@ class SampledNet(BaseModel):
             raise ValueError("cannot determine best radius given alpha")
 
         else:
-            weights_l1, biases_l1, _ = compute_weights_biases_layer1(
-                X_train, model.weights, model.biases, radius
+            weights_l1, biases_l1, x_1_x_2_pairs = compute_weights_biases_layer1(
+                X_train, model.weights, model.biases, radius, project_onto_boundary,
+                augment_data, choose_x_2
             )
             weights_l2, biases_l2 = self._compute_weights_biases_layer2(
                 X_train,
@@ -83,11 +91,12 @@ class SampledNet(BaseModel):
                 alpha=alpha,
             )
             self.weights, self.biases = [weights_l1, weights_l2], [biases_l1, biases_l2]
+            return x_1_x_2_pairs
 
-        return alpha, radius
+        return x_1_x_2_pairs
 
     def _compute_weights_biases_layer2(
-        self, X, y, weights, biases, weights_l1, biases_l1, alpha=1, layer2="classic"
+            self, X, y, weights, biases, weights_l1, biases_l1, alpha=1, layer2="classic"
     ):
         if layer2 == "classic":
             return compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1)

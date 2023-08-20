@@ -1,6 +1,6 @@
-import pytest
 import numpy as np
-from logic import *
+from utils.layer1_logic import choose_x1_x2
+from utils.layer2_logic import compute_weights_biases_layer2_classic
 
 
 def test_choose_x1_x2_lowest_activation_1():

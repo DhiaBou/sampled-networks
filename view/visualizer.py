@@ -3,7 +3,6 @@ import json
 from itertools import zip_longest
 from typing import List
 
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib_inline
 import numpy as np
@@ -15,7 +14,6 @@ from models.sampled_net import SampledNet
 from utils.utilities import loss_mse, loss_r2
 
 matplotlib_inline.backend_inline.set_matplotlib_formats('retina')
-matplotlib.rcParams['figure.dpi'] = 300
 
 
 def visualize_data(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):

@@ -37,10 +37,16 @@ class Dataset:
         X = np.random.uniform(-1, 1, size=(num_samples, xd))
         a = np.array([2 * j / xd - 1 for j in range(1, xd + 1)])
 
-        y = np.array(
-            [np.sqrt(3 / 2) * (np.linalg.norm(x - a) - np.linalg.norm(x + a)) for x in X]
-        )
+        y = np.array([np.sqrt(3 / 2) * (np.linalg.norm(x - a) - np.linalg.norm(x + a)) for x in X])
         y = y.reshape(-1, 1)
+        self.X = X
+        self.y = y
+        return self
+
+    def create_dataset_sinus_2d(self, num_samples):
+        """Create synthetic Barron dataset."""
+        X = np.random.uniform(-np.pi, np.pi, size=(num_samples, 2))
+        y = np.array([[np.sin(x[0]), np.cos(x[1])] for x in X])
         self.X = X
         self.y = y
         return self

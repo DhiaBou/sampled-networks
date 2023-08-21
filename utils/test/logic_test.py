@@ -1,6 +1,6 @@
-import pytest
 import numpy as np
-from logic import *
+from utils.layer1_logic import choose_x1_x2
+from utils.layer2_logic import compute_weights_biases_layer2_classic
 
 
 def test_choose_x1_x2_lowest_activation_1():
@@ -9,7 +9,7 @@ def test_choose_x1_x2_lowest_activation_1():
     bias = 0
     radius = 3.0
 
-    x_1, x_2 = choose_x1_x2_lowest_activation(X, weight, bias, radius)
+    x_1, x_2 = choose_x1_x2(X, weight, bias, radius)
 
     expected_x1 = np.array([-1, -1])
     expected_x2 = np.array([1, 1])
@@ -24,7 +24,7 @@ def test_choose_x1_x2_lowest_activation_2():
     bias = 0
     radius = 2.0
 
-    x_1, x_2 = choose_x1_x2_lowest_activation(X, weight, bias, radius)
+    x_1, x_2 = choose_x1_x2(X, weight, bias, radius)
 
     expected_x1 = np.array([-1, -1])
     expected_x2 = np.array([0, -0.5])

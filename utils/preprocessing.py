@@ -18,7 +18,7 @@ def find_magnitude(w):
     norms = [np.linalg.norm(vector) for vector in w]
     average = np.mean(norms)
 
-    return 1 / average
+    return average
 
 
 def find_center_and_magnitude(w, b):

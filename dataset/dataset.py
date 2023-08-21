@@ -48,7 +48,7 @@ class Dataset:
         X = np.random.uniform(-np.pi, np.pi, size=(num_samples, 2))
         y = np.array([[np.sin(x[0]), np.cos(x[1])] for x in X])
         self.X = X
-        self.y = (y + 1) + (y + 1) + (y + 1) + (y + 1)
+        self.y = 2 * y
         return self
 
     def scale(self, scaler):

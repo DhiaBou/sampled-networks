@@ -26,11 +26,11 @@ class NeuralNet(BaseModel):
 
         for layer_size in layers:
             model.add(tf.keras.layers.Dense(layer_size, activation="relu", kernel_initializer="he_normal",
-                                            kernel_regularizer=tf.keras.regularizers.l2(0.001)))
+                                            ))
 
         output_dim = 1 if np.ndim(y_train) == 1 else y_train.shape[1]
         model.add(tf.keras.layers.Dense(output_dim, kernel_initializer="he_normal",
-                                        kernel_regularizer=tf.keras.regularizers.l2(0.001)))
+                                        ))
 
         model.compile(optimizer="adam", loss="mse")
 

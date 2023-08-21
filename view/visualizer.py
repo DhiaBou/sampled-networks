@@ -3,7 +3,6 @@ import json
 from itertools import zip_longest
 from typing import List
 
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib_inline
 import numpy as np
@@ -14,8 +13,7 @@ from models.base_model import BaseModel
 from models.sampled_net import SampledNet
 from utils.utilities import loss_mse, loss_r2
 
-matplotlib_inline.backend_inline.set_matplotlib_formats('retina')
-matplotlib.rcParams['figure.dpi'] = 300
+matplotlib_inline.backend_inline.set_matplotlib_formats('svg')
 
 
 def visualize_data(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):
@@ -114,7 +112,7 @@ def plot_vector_differences(weights1, weights2, radii=[], losses=[]):
         )
         angles = np.sort(angles)
         x = np.arange(len(angles))
-        label = "Mean: {:0.2f}".format(float(np.mean(angles)))
+        label = "Mean Angle: {:0.2f}".format(float(np.mean(angles)))
         if r is not None and l is not None:
             label = "r: {:0.2f}".format(float(r)) + " loss: {:0.3e}".format(float(l)) + " " + label
         ax.plot(x, angles, marker="o", label=label)

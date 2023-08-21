@@ -29,7 +29,7 @@ class Dataset:
         """Load data from CSV file."""
         data = np.loadtxt(csv_file, delimiter=",", skiprows=skiprows)
         self.X = data[:, 0:x_cols]
-        self.y = data[:, x_cols : x_cols + y_cols]
+        self.y = data[:, x_cols: x_cols + y_cols]
         return self
 
     def create_dataset_Barron(self, xd, num_samples):
@@ -48,7 +48,7 @@ class Dataset:
         X = np.random.uniform(-np.pi, np.pi, size=(num_samples, 2))
         y = np.array([[np.sin(x[0]), np.cos(x[1])] for x in X])
         self.X = X
-        self.y = y
+        self.y = 2 * y
         return self
 
     def scale(self, scaler):

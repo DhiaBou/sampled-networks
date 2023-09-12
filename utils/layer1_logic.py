@@ -1,6 +1,7 @@
 from typing import Literal
 
 import numpy as np
+from scipy.spatial import KDTree
 from tqdm import tqdm
 
 from utils.utilities import augment_by_sampling_gaussian_noise
@@ -24,14 +25,17 @@ def find_max_distance_to_bias_origin(X, weight, bias):
 
 
 def choose_x1_x2(X, weight, bias, radius=0, project_onto_boundary=False,
-                 choose_x_2: Literal["angle", "norm"] = "norm"):
+                 choose_x_2: Literal["angle", "norm", "norm_kdtree"] = "norm"):
     validate_radius(radius)
 
     X_closest_indices = choose_x1_in_radius(X, bias, radius, weight)
     x_1, x_2 = None, None
     if choose_x_2 == "norm":
         x_1, x_2 = choose_x2_closest_to_weight_scaled(X, X_closest_indices, weight)
-    if choose_x_2 == "angle":
+    elif choose_x_2 == "norm_kdtree":
+        X_tree = KDTree(X)
+        x_1, x_2 = choose_x2_closest_to_weight_scaled_optimized(X_tree, X_closest_indices, weight)
+    elif choose_x_2 == "angle":
         x_1, x_2 = choose_x2_min_angle_to_weight(X, X_closest_indices, weight)
 
     if project_onto_boundary:
@@ -101,9 +105,26 @@ def choose_x2_closest_to_weight_scaled(X, X_candidate_indices, weight):
     return x_1_retur.copy(), x_2_retur.copy()
 
 
+def choose_x2_closest_to_weight_scaled_optimized(X: KDTree, X_candidate_indices, weight):
+    min_distance = np.inf
+    x_1_retur, x_2_retur = None, None
+
+    for i in X_candidate_indices:
+        x_1 = X.data[i]
+        x = x_1 + weight / (np.linalg.norm(weight) ** 2)
+        dists, idxs = X.query(x, 2)
+
+        chosen_idx = 1 if np.array_equal(X.data[idxs[0]], x_1) else 0
+        if dists[chosen_idx] < min_distance:
+            min_distance = dists[chosen_idx]
+            x_1_retur, x_2_retur = x_1, X.data[idxs[chosen_idx]]
+
+    return x_1_retur.copy(), x_2_retur.copy()
+
+
 def compute_weights_biases_layer1(
         X, weights, biases, radius=0, project_onto_boundary=False, augment_data=None,
-        choose_x_2: Literal["angle", "norm"] = "norm"):
+        choose_x_2: Literal["angle", "norm", "norm_kdtree"] = "norm"):
     validate_radius(radius)
 
     if augment_data is not None:

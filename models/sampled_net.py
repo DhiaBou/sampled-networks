@@ -25,7 +25,7 @@ class SampledNet(BaseModel):
             verbose=1,
             project_onto_boundary=False,
             augment_data=None,
-            choose_x_2: Literal["angle", "norm"] = "norm"
+            choose_x_2: Literal["angle", "norm_kdtree", "norm"] = "norm"
     ):
         """
         Trains the sampled network model with provided training data by learning the weights and biases.
@@ -92,8 +92,6 @@ class SampledNet(BaseModel):
             )
             self.weights, self.biases = [weights_l1, weights_l2], [biases_l1, biases_l2]
             return x_1_x_2_pairs
-
-        return x_1_x_2_pairs
 
     def _compute_weights_biases_layer2(
             self, X, y, weights, biases, weights_l1, biases_l1, alpha=1, layer2="classic"

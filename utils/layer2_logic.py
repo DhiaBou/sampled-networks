@@ -28,10 +28,10 @@ def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, bia
     weights_l2 = weights[1].copy()
     biases_l2 = biases[1].copy()
     y_old = np.dot((np.maximum(0, np.dot(X, weights[0]) - biases[0])), weights[1]) - biases[1]
-    y_new = np.dot((np.maximum(0, np.dot(X, weights_l1) - biases_l1)), weights_l2) - biases_l2
+    y_new = np.dot((np.maximum(0, np.dot(X, weights_l1) - biases_l1)), weights_l2)
     delta = y_new - y_old
     delta_avg = np.average(delta, axis=0)
-    biases_l2 = biases_l2 + delta_avg
+    biases_l2 = delta_avg
     return weights_l2, biases_l2
 
 

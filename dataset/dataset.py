@@ -51,6 +51,15 @@ class Dataset:
         self.y = 2 * y
         return self
 
+    def create_dataset_laplacian_of_gaussian(self, num_samples, sigma=0.5):
+        X = np.random.uniform(-2, 2, size=(num_samples, 2))
+        term1 = -1 / (np.pi * sigma ** 4)
+        term2 = 1 - ((X[:, 0] ** 2 + X[:, 1] ** 2) / (2 * sigma ** 2))
+        term3 = np.exp(-(X[:, 0] ** 2 + X[:, 1] ** 2) / (2 * sigma ** 2))
+        self.X = X
+        self.y = np.array(term1 * term2 * term3).reshape(-1, 1)
+        return self
+
     def scale(self, scaler):
         """Scale the input features."""
         self.X = scaler.fit_transform(self.X)

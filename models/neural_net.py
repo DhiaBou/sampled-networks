@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from keras import Sequential
 
 from models.base_model import BaseModel
 
@@ -9,7 +10,7 @@ class NeuralNet(BaseModel):
 
     def __init__(self):
         super().__init__()
-        self.model = None
+        self.model: Sequential = None
 
     def fit(self, X_train, y_train, layers, validation_split=0.2, epochs=200):
         """Train the neural network on data X_train and targets y_train.
@@ -39,7 +40,7 @@ class NeuralNet(BaseModel):
             y_train,
             validation_split=validation_split,
             epochs=epochs,
-            verbose=0,
+            verbose=1,
         )
 
         self.model = model

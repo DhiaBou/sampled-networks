@@ -1,11 +1,8 @@
 from typing import Literal
 
-from sklearn.model_selection import train_test_split
-
 from models.base_model import BaseModel
-from utils.layer1_logic import compute_weights_biases_layer1
-from utils.layer2_logic import choose_best_radius_alpha, choose_best_alpha, compute_weights_biases_layer2_classic, \
-    compute_weights_biases_layer2_lstsq, compute_weights_biases_layer2_ridge
+from utils.layer1_logic import layer_1_conversion
+from utils.layer2_logic import choose_best_threshold_ratio_and_alpha, choose_best_alpha_for_ridge, layer_2_conversion
 
 
 class SampledNet(BaseModel):
@@ -15,11 +12,10 @@ class SampledNet(BaseModel):
     def fit(
             self,
             X_train,
-            y_train,
             model,
-            radius=0,
+            r=0,
             validation_split=0.2,
-            layer2="classic",
+            layer2: Literal["bias_only", "ridge", "lstsq"] = "bias_only",
             alpha=-1,
             num_intervals=10,
             verbose=1,
@@ -45,62 +41,50 @@ class SampledNet(BaseModel):
         - Alpha: Optimal or chosen alpha value
         - Radius: Optimal or chosen radius value
         """
-        if layer2 == "ridge" and radius == -1 and alpha == -1:
-            alpha, radius, self.weights, self.biases = choose_best_radius_alpha(
+        if layer2 == "ridge" and r == -1 and alpha == -1:
+            alpha, r, self.weights, self.biases = choose_best_threshold_ratio_and_alpha(
                 X_train,
-                y_train,
                 model.weights,
                 model.biases,
                 num_intervals=num_intervals,
                 verbose=verbose,
-                validation_split=validation_split
+                validation_split=validation_split,
+                choose_x_2=choose_x_2
             )
+            return alpha, r
 
-        elif layer2 == "ridge" and radius != -1 and alpha == -1:
-            weights_l1, biases_l1, x_1_x_2_pairs = compute_weights_biases_layer1(
-                X_train, model.weights, model.biases, radius, project_onto_boundary,
+        elif layer2 == "ridge" and r != -1 and alpha == -1:
+            W_1_hat, b_1_hat, x_1_x_2_pairs = layer_1_conversion(
+                X_train, model.weights, model.biases, r, project_onto_boundary,
                 augment_data, choose_x_2
             )
-            X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_split)
-            alpha, self.weights, self.biases = choose_best_alpha(
+            alpha, self.weights, self.biases = choose_best_alpha_for_ridge(
                 X_train,
-                y_train,
-                X_val,
-                y_val,
-                weights_l1,
-                biases_l1,
-                verbose=verbose,
-            )
-
-        elif layer2 == "ridge" and radius == -1 and alpha != 1:
-            raise ValueError("cannot determine best radius given alpha")
-
-        else:
-            weights_l1, biases_l1, x_1_x_2_pairs = compute_weights_biases_layer1(
-                X_train, model.weights, model.biases, radius, project_onto_boundary,
-                augment_data, choose_x_2
-            )
-            weights_l2, biases_l2 = self._compute_weights_biases_layer2(
-                X_train,
-                y_train,
+                W_1_hat,
+                b_1_hat,
                 model.weights,
                 model.biases,
-                weights_l1,
-                biases_l1,
+                verbose=verbose,
+                validation_split=validation_split,
+            )
+            return alpha
+
+        elif layer2 == "ridge" and r == -1 and alpha != 1:
+            raise ValueError("cannot determine best r given alpha")
+
+        else:
+            W_1_hat, b_1_hat, x_1_x_2_pairs = layer_1_conversion(
+                X_train, model.weights, model.biases, r, project_onto_boundary,
+                augment_data, choose_x_2
+            )
+            weights_l2, biases_l2 = layer_2_conversion(
+                X_train,
+                model.weights,
+                model.biases,
+                W_1_hat,
+                b_1_hat,
                 layer2=layer2,
                 alpha=alpha,
             )
-            self.weights, self.biases = [weights_l1, weights_l2], [biases_l1, biases_l2]
+            self.weights, self.biases = [W_1_hat, weights_l2], [b_1_hat, biases_l2]
             return x_1_x_2_pairs
-
-    def _compute_weights_biases_layer2(
-            self, X, y, weights, biases, weights_l1, biases_l1, alpha=1, layer2="classic"
-    ):
-        if layer2 == "classic":
-            return compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1)
-        elif layer2 == "lstsq":
-            return compute_weights_biases_layer2_lstsq(X, y, weights_l1, biases_l1)
-        elif layer2 == "ridge":
-            return compute_weights_biases_layer2_ridge(X, y, weights_l1, biases_l1, alpha=alpha)
-        else:
-            raise ValueError(f"Invalid layer2 value: {layer2}. Expected 'classic', 'lstsq', or 'ridge'")

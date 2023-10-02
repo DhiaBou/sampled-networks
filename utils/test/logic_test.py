@@ -1,7 +1,7 @@
 import numpy as np
 
 from utils.layer1_logic import choose_x1_x2
-from utils.layer2_logic import compute_weights_biases_layer2_classic
+from utils.layer2_logic import layer_2_conversion_only_bias_update
 
 
 def test_choose_x1_x2_lowest_activation_1():
@@ -82,7 +82,7 @@ def test_compute_weights_biases_layer2_classic():
     weights_l1 = np.array([[1, -1]])
     biases_l1 = np.array([0, 0])
 
-    weights_l2, biases_l2 = compute_weights_biases_layer2_classic(
+    weights_l2, biases_l2 = layer_2_conversion_only_bias_update(
         X, y, weights, biases, weights_l1, biases_l1
     )
 

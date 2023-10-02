@@ -1,9 +1,12 @@
 import json
-from itertools import zip_longest, count
+from itertools import count
 from typing import List
 
 import matplotlib
 import matplotlib_inline
+import numpy as np
+import seaborn as sns
+from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
 from dataset.dataset import Dataset
@@ -13,7 +16,11 @@ from utils.utilities import loss_mse, loss_r2
 
 save_to_pgf = False
 path_to_histogram_directory = "C:/Users/daydo/Downloads/tum-thesis-latex-master-4/tum-thesis-latex-master/histograms/histogram"
-matplotlib.rcParams['legend.fontsize'] = 'small'
+# matplotlib.rcParams['legend.fontsize'] = 'small'
+plt.rcParams['axes.labelsize'] = 'x-large'
+plt.rcParams['axes.titlesize'] = 'xx-large'
+
+counter = count(start=1)
 
 if save_to_pgf:
     matplotlib_inline.backend_inline.set_matplotlib_formats('png')
@@ -25,28 +32,23 @@ if save_to_pgf:
         'pgf.rcfonts': False,
     })
 
-counter = count(start=1)  # Creates a counter starting at 1
 
-
-def save_fig(plt, txt=""):
+def save_fig(plot, txt=""):
     if save_to_pgf:
-        plt.savefig(
+        plot.savefig(
             path_to_histogram_directory + str(next(counter)) + txt + ".pgf")
 
 
-def visualize_data(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):
+def visualize_two_lists_of_values(Y_1, Y_2, Y1="Y 1", Y2="Y 2"):
     Y_1, Y_2 = np.array(Y_1), np.array(Y_2)
     n, d = len(Y_1), Y_1.shape[1]
 
-    # Get the sorting indices for each dimension of Y_1
     sorting_indices = np.argsort(Y_1, axis=0)[::-1]
 
-    # Adjusting the subplots for horizontal layout
     fig, axs = plt.subplots(1, d, figsize=(d * 5, 3))
     axs = axs.flatten() if d > 1 else [axs]
 
     for dim, ax in enumerate(axs):
-        # Sort Y_1 and Y_2 based on the sorting indices for the current dimension
         Y_1_sorted = Y_1[sorting_indices[:, dim], dim]
         Y_2_sorted = Y_2[sorting_indices[:, dim], dim]
         mse = loss_mse(Y_1_sorted, Y_2_sorted)
@@ -74,7 +76,7 @@ def plot_weight_biases_differences(weights1, weights2, biases1, biases2):
     weights2 = np.transpose(weights2)
     print("are given weight matrices equal: ", np.array_equal(weights1, weights2))
     angles = map_to_angle_differences(weights1, weights2)
-    # norms = map_to_norm_ratio(weights1, weights2)
+
     normsw1 = np.array([np.linalg.norm(w) for w in weights1])
     normsw2 = np.array([np.linalg.norm(w) for w in weights2])
 
@@ -93,7 +95,7 @@ def plot_weight_biases_differences(weights1, weights2, biases1, biases2):
 
     weight_norms_MAE = np.mean(np.abs(normsw1 - normsw2))
     correlation = np.corrcoef(normsw1, normsw2)[0, 1]
-    print(f"Correlation{correlation:.4f}")
+    print(f"Correlation of weight vector norms: {correlation:.4f}")
     ax1.plot(x, angles, marker="o", label=label_angle, color='#606060', markersize=3)
     ax1.set_ylabel("Angle (degrees)")
     ax1.tick_params(axis='y', labelright=True, labelleft=False)
@@ -129,16 +131,6 @@ def plot_weight_biases_differences(weights1, weights2, biases1, biases2):
     plt.show()
     save_fig(plt, "plot_weight_biases_differences")
 
-    # label_norm_of_difference = "Euclidean distance mean: {:0.2f}".format(float(np.mean(normsw1 - normsw2)))
-    # norms = np.array(norms)[sorted_indices]
-    # ax2.plot(x, norms, linestyle='--', marker='o', label=label_norm_of_difference, color='#606060')
-    # if not any(n > 2 for n in norms):
-    #     ax2.set_ylim(top=2)
-
-
-def map_to_norm_ratio(weights1, weights2):
-    return [np.linalg.norm(vec2) / np.linalg.norm(vec1) for vec1, vec2 in zip(weights1, weights2)]
-
 
 def map_to_angle_differences(weights1, weights2):
     angles = np.degrees(
@@ -156,100 +148,54 @@ def map_to_angle_differences(weights1, weights2):
     return angles
 
 
-def plot_vector_differences(weights1, weights2, biases_base, biases2_sampled, radii=[], losses=[]):
-    fig, (ax, ax1) = plt.subplots(2, 1, figsize=(5, 7.5))
-    x = np.arange(len(biases_base))
+def plot_vector_differences(weights_1_list, weights_2_list, biases_1_list, biases_2_list, r_list=[], losses_list=[]):
+    fig, ax1 = plt.subplots(figsize=(5, 3.75))
+    x = np.arange(len(biases_1_list))
 
-    for w1, w2, b2, r, l in zip_longest(weights1, weights2, biases2_sampled, radii, losses, fillvalue=None):
-        ww1 = np.transpose(w1)
-        ww2 = np.transpose(w2)
-        angles = map_to_angle_differences(ww1, ww2)  # make sure this function is correctly defined
-        angles = np.sort(angles)
-        label = "mean angle={:0.2f}".format(float(np.mean(angles)))
-        if r is not None and l is not None:
-            label = "$r$={:0.2f}".format(float(r))
-        ax.plot(x, angles, marker="o", label=label, markersize=3)
-
-    ax.set_xlabel("Vector Index")
-    ax.set_ylabel("Angle (degrees)")
-    ax.set_title("Angles between corresponding vectors")
-    ax.grid(True)
-    ax.legend(fontsize='small')
-
-    ax1.plot(radii, [np.mean(np.abs(b2 - biases_base)) for b2 in biases2_sampled], color='#1f77b4', marker='o',
-             markersize=3,
-             linestyle='-', label='Bias difference mean')
+    ax1.plot(r_list, [np.mean(np.abs(b2 - biases_1_list)) for b2 in biases_2_list], color='#1f77b4', marker='o',
+             markersize=3, linestyle='-', label='Bias MAE')
     ax1.set_xlabel('ratio $r$')
-    ax1.set_ylabel('Bias difference mean')
+    ax1.set_ylabel('Bias MAE')
     ax1.tick_params(axis='y')
-    ax1.legend(loc='upper left', fontsize='small')
+    ax1.legend(loc='upper left')
+
     ax2 = ax1.twinx()
-
-    ax2.plot(radii, losses, color='#ff7f0e', marker='o', linestyle='--', label='mse', markersize=3)
-    ax2.set_ylabel('mse')
+    ax2.plot(r_list, losses_list, color='#ff7f0e', marker='o', linestyle='--', label='MSE of the outputs', markersize=3)
+    ax2.set_ylabel('MSE of the outputs')
     ax2.tick_params(axis='y')
-    ax2.legend(loc='upper right', fontsize='small')
+    ax2.legend(loc='upper right')
 
-    ax1.set_title('Comparison of mse loss and mean differences in biases against ratios')
+    ax1.set_title('Output MSE and Bias MAE on Various Values of $r$')
     ax1.grid(True)
     plt.tight_layout()
     plt.show()
     save_fig(plt, "plot_vector_differences")
 
 
-def plot_vector_differences_biases(biases_base, biases2_sampled, radii=[], losses=[]):
-    fig, ax = plt.subplots(figsize=(11, 4))
-    x = np.arange(len(biases_base))
-    sorted_indices = np.argsort(biases_base)
-    biases_base = biases_base[sorted_indices]
-    zorder = len(biases2_sampled)
-
-    for b2, r, l in zip_longest(biases2_sampled, radii, losses):
-        b2 = np.array(b2)[sorted_indices]
-        label = ""
-        if r is not None and l is not None:
-            label = "r: {:0.2f}".format(float(r)) + " loss: {:0.3e}".format(float(l)) + " " + label
-        ax.plot(x, b2, label=label, zorder=zorder)
-        zorder -= 1
-
-    ax.plot(x, biases_base, label="", color="black", zorder=len(biases2_sampled) + 1)
-
-    plt.xlabel("Vector Index")
-    plt.ylabel("Angle (degrees)")
-    plt.title("Angles between corresponding vectors")
-    plt.grid(True)
-    ax.legend()
-    plt.show()
-
-
-def write_to_file(output_file, data):
-    with open(output_file, "w") as f:
-        f.write(json.dumps(data))
+def write_to_file(output_file, data_in_json):
+    with open(output_file, "w") as file:
+        file.write(json.dumps(data_in_json))
 
 
 def read_from_file(input_file):
-    with open(input_file, "r") as f:
-        return json.loads(f.read())
+    with open(input_file, "r") as file:
+        return json.loads(file.read())
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-
-def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights, num_vectors=np.inf):
+def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights, max_number_vectors=np.inf):
     X = np.array(X)
     plt.figure(figsize=(3, 3))
-    plt.scatter(X[:, 0], X[:, 1], s=7)  # plot points in X
+    plt.scatter(X[:, 0], X[:, 1], s=7)
 
     weight_norms = np.array([np.linalg.norm(w) for w in weights])
     sorted_indices = np.argsort(weight_norms)[::-1]
 
-    if num_vectors > len(weights):
-        num_vectors = len(weights)
+    if max_number_vectors > len(weights):
+        max_number_vectors = len(weights)
 
-    x_1_x2_tuples = [x_1_x2_tuples[i] for i in sorted_indices[:num_vectors]]
-    weights = [weights[i] for i in sorted_indices[:num_vectors]]
-    original_indices = sorted_indices[:num_vectors]
+    x_1_x2_tuples = [x_1_x2_tuples[i] for i in sorted_indices[:max_number_vectors]]
+    weights = [weights[i] for i in sorted_indices[:max_number_vectors]]
+    original_indices = sorted_indices[:max_number_vectors]
 
     for (x1, x2), w, original_index in zip(x_1_x2_tuples, weights, original_indices):
         import matplotlib.colors as mcolors
@@ -258,7 +204,7 @@ def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights, num_vectors=n
 
         color = colors_list[original_index % len(colors_list)]
         plt.scatter(x1[0], x1[1], color=color, s=10, marker='x')
-        # Plot line segment
+
         plt.plot([x1[0], x2[0]], [x1[1], x2[1]], color=color, linewidth=0.5)
         plt.scatter([x2[0]], [x2[1]], color=color, marker='^', s=10)
 
@@ -284,25 +230,41 @@ def plot_weight_vectors_and_point_pairs(X, x_1_x2_tuples, weights, num_vectors=n
     plot_for_x2, = plt.plot([], [], '^', color='black', label='$x^{(2)}$', markersize=3)
     plot_for_w = Line2D([], [], color='black', marker=r'$\rightarrow$', linestyle='None', markersize=4, label='w')
 
-    # Creating a legend with specified marker styles
     plt.legend(handles=[plot_for_x1, plot_for_x2, plot_for_w], labels=['$x^{(1)}$', '$x^{(2)}$', 'w'],
-               markerfirst=True, fontsize='small')
+               markerfirst=True)
     plt.show()
 
     save_fig(plt, "plot_weight_vectors_and_point_pairs")
 
 
-def model_base_vs_model_sampled(dataset: Dataset, model_base: BaseModel, model_sampled: SampledNet,
-                                x_1_X2_tuples: List = None):
-    y_base_model_train = model_base.predict(dataset.X_train)
-    y_base_model_test = model_base.predict(dataset.X_test)
+def plot_2D_heat_map_of_a_list_of_pairs(x, y):
+    sns.set_style("white")
+    plt.figure(figsize=(3, 3))
 
-    y_sampled_test = model_sampled.predict(dataset.X_test)
-    y_sampled_train = model_sampled.predict(dataset.X_train)
-    print(f"train: loss(y_base_model, y_sampled)")
-    print(f"r2: {loss_r2(y_sampled_train, y_base_model_train)}\tmse: {loss_mse(y_sampled_train, y_base_model_train)}")
-    print(f"test: loss(y_base_model, y_sampled)")
-    print(f"r2: {loss_r2(y_sampled_test, y_base_model_test)}\tmse: {loss_mse(y_sampled_test, y_base_model_test)}")
+    sns.kdeplot(x=x, y=y, cmap="Greys", fill=True, thresh=0)
+
+    plt.xlim(-3, 3)
+    plt.ylim(-3, 3)
+
+    plt.axvline(0, color='gray', linestyle='--')
+    plt.axhline(0, color='gray', linestyle='--')
+
+    plt.title('2D Heatmap')
+    plt.xlabel("$x_1")
+    plt.ylabel("$x_2")
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    plt.show()
+
+
+def initial_network_vs_converted_sampled_network(dataset: Dataset, model_base: BaseModel, model_sampled: SampledNet,
+                                                 x_1_X2_tuples: List = None):
+    y_base = model_base.predict(dataset.X)
+
+    y_sampled = model_sampled.predict(dataset.X)
+
+    print(f"loss(y_base, y_sampled)")
+    print(f"r2: {loss_r2(y_base, y_sampled)}\tmse: {loss_mse(y_base, y_sampled)}")
 
     plot_weight_biases_differences(
         model_base.weights[0], model_sampled.weights[0], model_base.biases[0], model_sampled.biases[0]
@@ -311,5 +273,4 @@ def model_base_vs_model_sampled(dataset: Dataset, model_base: BaseModel, model_s
     if x_1_X2_tuples:
         plot_weight_vectors_and_point_pairs(dataset.X_train, x_1_X2_tuples, np.transpose(model_base.weights[0]), 30)
 
-    visualize_data(y_base_model_train, y_sampled_train, "y base model train", "y sampled train")
-    # visualize_data(y_base_model_test, y_sampled_test, "y base model test", "y sampled test")
+    visualize_two_lists_of_values(y_base, y_sampled, "y base model train", "y sampled train")

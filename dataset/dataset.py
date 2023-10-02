@@ -16,14 +16,14 @@ class Dataset:
 
     def __init__(self):
         """Initialize an empty dataset"""
-        self.X = []
-        self.y = []
+        self.X = np.array([])
+        self.y = np.array([])
 
-        self.X_train = []
-        self.X_test = []
+        self.X_train = np.array([])
+        self.X_test = np.array([])
 
-        self.y_train = []
-        self.y_test = []
+        self.y_train = np.array([])
+        self.y_test = np.array([])
 
     def load_data_from_csv(self, csv_file, x_cols, y_cols, skiprows=0):
         """Load data from CSV file."""
@@ -31,6 +31,14 @@ class Dataset:
         self.X = data[:, 0:x_cols]
         self.y = data[:, x_cols: x_cols + y_cols]
         return self
+
+    def get_subset(self, num_samples):
+        dataset = Dataset()
+        selected_indices = np.random.choice(self.X.shape[0], num_samples, replace=False)
+
+        dataset.X = self.X[selected_indices]
+        dataset.y = self.y[selected_indices]
+        return dataset
 
     def create_dataset_Barron(self, xd, num_samples):
         """Create synthetic Barron dataset."""

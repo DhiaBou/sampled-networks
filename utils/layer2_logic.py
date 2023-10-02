@@ -1,42 +1,39 @@
+from typing import Literal
+
 import numpy as np
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 
-from dataset.dataset import Dataset
-from models.neural_net import NeuralNet
-from utils.layer1_logic import compute_weights_biases_layer1
-from utils.utilities import predict_output, loss_mse, loss_r2, loss_model_on_test
+from utils.layer1_logic import layer_1_conversion
+from utils.utilities import predict_output, loss_mse
 
 
-def compute_weights_biases_layer2_classic_old(X, y, weights, biases, weights_l1, biases_l1):
-    N2 = len(weights[1][0])
-    N1 = len(weights[1])
-    weights_l2 = weights[1].copy()
-    biases_l2 = biases[1].copy()
-    for i in range(N1):
-        for j in range(N2):
-            w1i_hat = weights_l1[:, i]
-            b1_hat = biases_l1[i]
-            min_x = min(X, key=lambda x: np.dot(x, w1i_hat))
-            if b1_hat < np.dot(min_x, w1i_hat) and biases[0][i] < b1_hat:
-                print("****************************")
-                biases_l2[j] = biases_l2[j] + weights[1][:, j][i] * (biases[0][i] - b1_hat)
-    return weights_l2, biases_l2
+def layer_2_conversion(
+        X, trained_weights, trained_biases, W_1_hat, b_1_hat, alpha=1,
+        layer2: Literal["bias_only", "ridge", "lstsq"] = "bias_only"
+):
+    y = predict_output(X, trained_weights, trained_biases)
+    if layer2 == "bias_only":
+        return layer_2_conversion_only_bias_update(X, y, trained_weights, trained_biases, W_1_hat, b_1_hat)
+    elif layer2 == "lstsq":
+        return layer_2_conversion_lstsq(X, y, W_1_hat, b_1_hat)
+    elif layer2 == "ridge":
+        return layer_2_conversion_ridge(X, y, W_1_hat, b_1_hat, alpha=alpha)
+    else:
+        raise ValueError(f"Invalid layer2 value: {layer2}. Expected 'classic', 'lstsq', or 'ridge'")
 
 
-def compute_weights_biases_layer2_classic(X, y, weights, biases, weights_l1, biases_l1):
-    weights_l2 = weights[1].copy()
-    biases_l2 = biases[1].copy()
-    y_old = np.dot((np.maximum(0, np.dot(X, weights[0]) - biases[0])), weights[1]) - biases[1]
-    y_new = np.dot((np.maximum(0, np.dot(X, weights_l1) - biases_l1)), weights_l2) - biases_l2
+def layer_2_conversion_only_bias_update(X, y_old, trained_weights, trained_biases, W_1_hat, b_1_hat):
+    weights_l2 = trained_weights[1].copy()
+    y_new = np.dot((np.maximum(0, np.dot(X, W_1_hat) - b_1_hat)), weights_l2)
     delta = y_new - y_old
     delta_avg = np.average(delta, axis=0)
-    biases_l2 = biases_l2 + delta_avg
+    biases_l2 = delta_avg
     return weights_l2, biases_l2
 
 
-def compute_weights_biases_layer2_lstsq(X, y, weights_l1, biases_l1):
-    X_l1 = np.dot(X, weights_l1) - biases_l1
+def layer_2_conversion_lstsq(X, y, W_1_hat, b_1_hat):
+    X_l1 = np.dot(X, W_1_hat) - b_1_hat
     X_l1 = np.maximum(X_l1, 0)
     X_c = np.c_[np.ones(X_l1.shape[0]), X_l1]  # add column of 1s to count for the biases
     w_c, residuals, rank, singular_values = np.linalg.lstsq(X_c, y, rcond=None)
@@ -45,8 +42,8 @@ def compute_weights_biases_layer2_lstsq(X, y, weights_l1, biases_l1):
     return weights_l2, biases_l2
 
 
-def compute_weights_biases_layer2_ridge(X, y, weights_l1, biases_l1, alpha=1):
-    X_l1 = np.dot(X, weights_l1) - biases_l1
+def layer_2_conversion_ridge(X, y, W_1_hat, b_1_hat, alpha=1):
+    X_l1 = np.dot(X, W_1_hat) - b_1_hat
     X_l1 = np.maximum(X_l1, 0)
     ridge = Ridge(alpha=alpha)
     ridge.fit(X_l1, y)
@@ -56,19 +53,23 @@ def compute_weights_biases_layer2_ridge(X, y, weights_l1, biases_l1, alpha=1):
     return weights_l2, biases_l2
 
 
-def choose_best_alpha(X_train, y_train, X_val, y_val, weights_l1, biases_l1, verbose=1):
+def choose_best_alpha_for_ridge(X_train, W_1_hat, b_1_hat, trained_weights, trained_biases, verbose=1,
+                                validation_split=0.2):
+    y_train = predict_output(X_train, trained_weights, trained_biases)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=validation_split)
+
     alpha_values = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
     min_loss = np.inf
-    alpha_r, weights_r, biases_r = 0, None, None
+    alpha_ret, weights_ret, biases_ret = 0, None, None
     if verbose == 1:
         print("alpha \tloss validation")
 
     for alpha in alpha_values:
-        weights_l2, biases_l2 = compute_weights_biases_layer2_ridge(
-            X_train, y_train, weights_l1, biases_l1, alpha=alpha
+        weights_l2, biases_l2 = layer_2_conversion_ridge(
+            X_train, y_train, W_1_hat, b_1_hat, alpha=alpha
         )
 
-        w, b = [weights_l1, weights_l2], [biases_l1, biases_l2]
+        w, b = [W_1_hat, weights_l2], [b_1_hat, biases_l2]
 
         y_pred = predict_output(X_val, w, b)
         loss_alpha = loss_mse(y_pred, y_val)
@@ -78,89 +79,38 @@ def choose_best_alpha(X_train, y_train, X_val, y_val, weights_l1, biases_l1, ver
 
         if loss_alpha <= min_loss:
             min_loss = loss_alpha
-            alpha_r = alpha
-            weights_r = w
-            biases_r = b
-    return alpha_r, weights_r, biases_r
+            alpha_ret = alpha
+            weights_ret = w
+            biases_ret = b
+    return alpha_ret, weights_ret, biases_ret
 
 
-def choose_best_radius_alpha(
-        X, y, weights_nn, biases_nn, num_intervals=10, verbose=1, validation_split=0.2
+def choose_best_threshold_ratio_and_alpha(
+        X, trained_weights, trained_biases, num_intervals=10, verbose=1, validation_split=0.2,
+        choose_x_2: Literal["angle", "norm_kdtree", "norm"] = "norm"
 ):
+    y = predict_output(X, trained_weights, trained_biases)
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=validation_split)
 
-    radii = np.linspace(0, 0.5, num_intervals)
-    alpha_r, radius_r, radius_r, weights_r, biases_r = 0, 0, 0, [], []
+    ratios = np.linspace(0, 0.5, num_intervals)
+    alpha_ret, ratio_ret, ratio_ret, weights_ret, biases_ret = 0, 0, 0, [], []
     min_mse = np.inf
-    for r in radii:
+    for r in ratios:
         if verbose == 1:
             print()
-            print(f"radius: {r:.3f}")
-        weights_l1, biases_l1, x_1_x_2_pairs = compute_weights_biases_layer1(
-            X, weights_nn, biases_nn, radius=r, choose_x_2="angle")
+            print(f"ratio: {r:.3f}")
+        W_1_hat, b_1_hat, x_1_x_2_pairs = layer_1_conversion(
+            X, trained_weights, trained_biases, r=r, choose_x_2=choose_x_2)
 
-        alpha, w, b = choose_best_alpha(
-            X_train,
-            y_train,
-            X_val,
-            y_val,
-            weights_l1,
-            biases_l1,
-            verbose=verbose,
-        )
+        alpha, w, b = choose_best_alpha_for_ridge(X_train, W_1_hat, b_1_hat, trained_weights, trained_biases,
+                                                  verbose=verbose)
 
         y_pred = predict_output(X_val, w, b)
         mse = loss_mse(y_pred, y_val)
         if mse <= min_mse:
             min_mse = mse
-            alpha_r = alpha
-            weights_r = w
-            biases_r = b
-            radius_r = r
-    return alpha_r, radius_r, weights_r, biases_r
-
-
-def loss_vs_aslpha_radius__sample_trained_on_dataset(data: Dataset, model_nn: NeuralNet):
-    from models.sampled_net import SampledNet
-
-    radiuses = np.linspace(0, 1, 10)
-    alpha_values = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 1e1, 1e2]
-    mses = {}
-
-    given_model_loss = loss_model_on_test(model_nn, data.X_test, data.y_test)
-    mses["given_model"] = given_model_loss
-
-    # calculate loss of SampledNet on radius and alpha combinations
-    mses["sampled_net"] = {}
-    for radius in radiuses:
-        print(f"radius: {radius:.3f}")
-        mses["sampled_net"][radius] = {}
-        weights_l1, biases_l1, _ = compute_weights_biases_layer1(
-            data.X_train, model_nn.weights, model_nn.biases, radius
-        )
-        for alpha in alpha_values:
-            weights_l2, biases_l2 = compute_weights_biases_layer2_ridge(
-                data.X_train, data.y_train, weights_l1, biases_l1, alpha=alpha
-            )
-            model_sampled = SampledNet()
-            model_sampled.weights = [weights_l1, weights_l2]
-            model_sampled.biases = [biases_l1, biases_l2]
-            y_sampled = model_sampled.predict(data.X_test)
-            mse = loss_mse(y_sampled, data.y_test)
-            mses["sampled_net"][radius][alpha] = mse
-    return mses
-
-
-def loss_vs_num_samples(datasets, models_nn):
-    from models.sampled_net import SampledNet
-
-    losses = {}
-    for dataset, model in zip(datasets, models_nn):
-        num_training = len(dataset.X_train)
-        model_sampled = SampledNet()
-        alpha, radius = model_sampled.fit(dataset.X_train, dataset.y_train, model)
-        y_sampled = model_sampled.predict(dataset.X_test)
-        mse = loss_mse(dataset.y_test, y_sampled)
-        r2_score = loss_r2(dataset.y_test, y_sampled)
-        losses[num_training] = {"mse": mse, "r2": r2_score}
-    return losses
+            alpha_ret = alpha
+            weights_ret = w
+            biases_ret = b
+            ratio_ret = r
+    return alpha_ret, ratio_ret, weights_ret, biases_ret

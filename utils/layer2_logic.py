@@ -35,7 +35,7 @@ def layer_2_conversion_only_bias_update(X, y_old, trained_weights, trained_biase
 def layer_2_conversion_lstsq(X, y, W_1_hat, b_1_hat):
     X_l1 = np.dot(X, W_1_hat) - b_1_hat
     X_l1 = np.maximum(X_l1, 0)
-    X_c = np.c_[np.ones(X_l1.shape[0]), X_l1]  # add column of 1s to count for the biases
+    X_c = np.c_[np.ones(X_l1.shape[0]), X_l1]
     w_c, residuals, rank, singular_values = np.linalg.lstsq(X_c, y, rcond=None)
     biases_l2 = -w_c[0]
     weights_l2 = w_c[1:]

@@ -18,7 +18,7 @@ class NeuralNet(BaseModel):
         Args:
             X_train: Input data for training
             y_train: Target values for training
-            layers: List of layer sizes
+            layers: List of layer widths
             validation_split: Validation set fraction of training data
             epochs: Number of training epochs
         """

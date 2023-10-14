@@ -1,11 +1,12 @@
-### swim_to_sampled_testing
+### conversion_from_swim_network
 
-this notebook tests whether a sampled network trained from a swim network give the exact same weights and biases.
+This notebook demonstrates the conversion of a network trained with the SWIM algorithm.
 
 ### 2D_visualisation
 
-visualizes the differences in weights and biases of a network trained with adam or swim and a sampled network. Also visualizes the weights and x_1, x_2 pairs during training of a network with adam every d_epochs epochs
+Visualizes in 2D the weights and biases of the trained and converted networks, as well as the sampling pairs.
 
-### adam_to_samped
+### conversion_from_adam_trained_network
 
-visualization and comparison between different strategies of choosing x_1 x_2 pairs, and updating the layer 2 weights and biases.
+This notebook illustrates the conversion of a network trained with the Adam optimizer using different approaches
+presented in the paper.

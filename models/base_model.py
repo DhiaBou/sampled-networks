@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 
 
 class BaseModel:
@@ -20,11 +19,11 @@ class BaseModel:
 
             if i < num_layers - 1:
                 if activation == "relu":
-                    output = np.maximum(output, 0)  # Apply ReLU activation for hidden layers
+                    output = np.maximum(output, 0)
                 elif activation == "tanh":
-                    output = np.tanh(output)  # Apply tanh activation for hidden layers
+                    output = np.tanh(output)
                 elif activation == "sigmoid":
-                    output = 1 / (1 + np.exp(-output))  # Apply sigmoid activation for hidden layers
+                    output = 1 / (1 + np.exp(-output))
                 else:
                     raise ValueError("Unsupported activation function:", activation)
 

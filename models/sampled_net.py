@@ -28,18 +28,21 @@ class SampledNet(BaseModel):
 
         Parameters:
         - X_train: Input training data
-        - y_train: Output training data
         - model: Instance of BaseModel class representing the trained neural network
-        - radius: Radius parameter for the distance to the least activator data point (Default: -1, find best radius)
+        - r: threshold ratio r (Default: -1, find best value of r)
         - validation_split: Proportion of the dataset to include in the validation split (Default: 0.2)
-        - layer2: Configuration of the second layer ("classic" or "ridge" or "lstsq") (Default: "classic")
+        - layer2: Configuration of the second layer ("bias_only", "ridge", "lstsq") (Default: "bias_only")
         - alpha: Regularization strength for Ridge regression (Default: -1, find best alpha)
-        - num_intervals: Number of radius, equal distances between 0 and max_distance between X_train pairs (Default: 10)
+        - num_intervals: Number of r values for the hyperparameter search for r
         - verbose: Flag to print progress in finding hyperparameters
+        - project_onto_boundary: Project x_1 onto the activation boundary of the neuron (Default: False)
+        - augment_data: is a pair (n, sigma) to augment the input dataset using Gaussian noise. (Default: None)
+        - choose_x_2: Configuration to choose the second point x_2  ("angle", "norm_kdtree", "norm") (Default: "norm")
 
         Returns:
         - Alpha: Optimal or chosen alpha value
-        - Radius: Optimal or chosen radius value
+        - r: Optimal or chosen radius value
+        - x_1_x_2_pairs: A list of the sampling pairs for each neuron's parameters
         """
         if layer2 == "ridge" and r == -1 and alpha == -1:
             alpha, r, self.weights, self.biases = choose_best_threshold_ratio_and_alpha(

@@ -68,7 +68,7 @@ def choose_x2_lowest_angle_approach(X, X_closest_indices, weight_vector):
     x_2_retur = None
     for i in X_closest_indices:
         x_1 = X[i]
-        X_other = np.delete(X, i, axis=0)  # remove x_1 from X
+        X_other = np.delete(X, i, axis=0)
         diffs = X_other - X[i]
         angles = np.arccos(np.clip((diffs @ weight_vector) / (np.linalg.norm(diffs, axis=1) * weight_norm), -1, 1))
         min_angle_index = np.argmin(angles)
@@ -87,7 +87,7 @@ def choose_x2_weight_norm_preservation(X, X_candidate_indices, weight_vector):
 
     for i in X_candidate_indices:
         x_1 = X[i]
-        X_other = np.delete(X, i, axis=0)  # remove x_1 from X
+        X_other = np.delete(X, i, axis=0)
 
         diffs = X_other - x_1
         w_1_hat = diffs / (np.linalg.norm(diffs, axis=1) ** 2).reshape(-1, 1)
